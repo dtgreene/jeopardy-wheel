@@ -1,0 +1,15 @@
+div.listItem {
+  @apply flex justify-between items-center px-2 py-1;
+}
+
+div.listItem:nth-child(odd) {
+  @apply bg-neutral-800;
+}
+
+button.deleteButton {
+  @apply opacity-0 transition-opacity;
+}
+
+div.listItem:hover .deleteButton:not(:disabled) {
+  @apply opacity-100;
+}

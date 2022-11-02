@@ -1,0 +1,5 @@
+input.input:-webkit-autofill:hover, 
+input.input:-webkit-autofill,
+input.input:-webkit-autofill:focus {
+  @apply bg-blue-500;
+}
