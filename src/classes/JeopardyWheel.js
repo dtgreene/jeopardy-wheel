@@ -117,6 +117,10 @@ export class JeopardyWheel {
         this.spinning = false;
         // stop updating
         this.stopUpdate();
+        // reset the arrow angle
+        this.arrow.angle = 0;
+        // call one last update
+        this.update();
       })
       .start();
   };
@@ -223,8 +227,11 @@ export class JeopardyWheel {
       // update the arrow
       this.arrow.update(this.ctx);
 
-      // update tween
-      TWEEN.update();
+      // only update tween if currently spinning
+      if(this.spinning) {
+        // update tween
+        TWEEN.update();        
+      }
     } catch (e) {
       console.warn(`MainLoop update failed; with error: ${e}`);
       MainLoop.stop();
