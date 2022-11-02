@@ -90,7 +90,7 @@ export class JeopardyWheel {
     this.update();
   };
   onTargetChange = (callback) => {
-    // debounce target change updates due to the high velocity
+    // debounce target change callback due to the high velocity of updates
     this._onTargetChange = debounce(callback, 250);
   };
   setTarget = (id) => {
@@ -110,7 +110,7 @@ export class JeopardyWheel {
     this.startUpdate();
 
     new TWEEN.Tween(this)
-      .to({ angle: this.angle + TWO_PI * 10 + Math.random() * 5 }, 5000)
+      .to({ angle: this.angle + TWO_PI * 10 + Math.random() * TWO_PI }, 6000)
       .easing(TWEEN.Easing.Quadratic.InOut)
       .onComplete(() => {
         // stop spinning
