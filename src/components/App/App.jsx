@@ -1,26 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  LockClosedIcon,
-  LockOpenIcon,
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { nanoid } from 'nanoid';
+import { Howl, Howler } from 'howler';
+import cx from 'classnames';
 
 import { Button } from '../Button';
+import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
-import { JeopardyWheel } from 'src/classes/JeopardyWheel';
+import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { useLocalStorage } from 'src/hooks';
+import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 
 import styles from './App.module.css';
 
 const wheel = new JeopardyWheel();
+const canvasStyle = {
+  minWidth: '300px',
+  maxWidth: canvasWidth,
+};
+let spinClickSound = null;
 
 export const App = () => {
   const canvasRef = useRef();
   const [formError, setFormError] = useState('');
   const [choices, _setChoices] = useLocalStorage('jeopardy-items', []);
   const [lastTarget, setLastTarget] = useState(null);
+  const [muted, setMuted] = useLocalStorage('jeopardy-muted', false);
 
   useEffect(() => {
     // initialize the wheel
@@ -31,7 +41,13 @@ export const App = () => {
 
   const setChoices = (value) => {
     _setChoices(value);
-    wheel.syncChoices(value);
+    wheel.setChoices(value);
+  };
+
+  const handleMuteClick = () => {
+    setMuted(!muted);
+    // global howler mute
+    Howler.mute(!muted);
   };
 
   const handleChoiceSubmit = (event) => {
@@ -72,6 +88,17 @@ export const App = () => {
   };
 
   const handleSpinClick = () => {
+    // create the click sound in response to a user gesture
+    // otherwise get an annoying warning
+    if (!spinClickSound) {
+      spinClickSound = new Howl({
+        src: [SpinClickSoundSrc],
+        volume: 0.6,
+        autoplay: false,
+      });
+    }
+    spinClickSound.play();
+
     wheel.spin();
   };
 
@@ -83,26 +110,35 @@ export const App = () => {
 
   return (
     <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start p-8 gap-8">
-      <div className="flex-1 flex flex-col justify-center">
-        <canvas ref={canvasRef} className="mb-4 border-b border-gray-600" />
-        <div className="flex justify-center">
-          <div className="flex gap-4">
-            <Button variant="primary" onClick={handleSpinClick}>
-              Spin the Wheel
-            </Button>
+      <div className="w-full flex flex-col justify-center items-center">
+        <canvas ref={canvasRef} className="w-full" style={canvasStyle} />
+        <div className="w-full flex justify-center items-center relative border-t pt-6 border-gray-600">
+          <SpinButton onClick={handleSpinClick}>Spin the Wheel</SpinButton>
+          <div className="absolute right-0 flex items-center gap-2">
             <Button
-              className="flex items-center"
               variant="secondaryOutline"
               onClick={handleDeleteClick}
               disabled={!lastTarget}
             >
-              <TrashIcon width={16} height={16} className="mr-2" />
-              <span>Delete Current Choice</span>
+              <TrashIcon width={20} height={20} />
+            </Button>
+            <Button variant="secondaryOutline" onClick={handleMuteClick}>
+              <div
+                className={cx('transition-colors', {
+                  'text-red-500': muted,
+                })}
+              >
+                {muted ? (
+                  <SpeakerXMarkIcon width={20} height={20} />
+                ) : (
+                  <SpeakerWaveIcon width={20} height={20} />
+                )}
+              </div>
             </Button>
           </div>
         </div>
       </div>
-      <div className="flex-1">
+      <div className="w-full">
         <div className="mb-4 border-b border-gray-600">Choices</div>
         <div className="mb-4 border border-gray-600 rounded overflow-y-auto max-h-96">
           {choices.length === 0 && (

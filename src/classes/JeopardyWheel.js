@@ -1,9 +1,12 @@
 import MainLoop from 'mainloop.js';
 import TWEEN from '@tweenjs/tween.js';
 import debounce from 'lodash.debounce';
+import { Howl } from 'howler';
 
-const canvasWidth = 1024;
-const canvasHeight = 768;
+import SpinSoundSrc from '../assets/GenericButton3.wav';
+
+export const canvasWidth = 1024;
+export const canvasHeight = 768;
 
 const centerX = canvasWidth * 0.5;
 const centerY = canvasHeight * 0.5;
@@ -39,6 +42,8 @@ const workerCtx = workerCanvas.getContext('2d');
 const TWO_PI = Math.PI * 2;
 const QUARTER_PI = Math.PI * 0.25;
 
+let clickSound = null;
+
 export class JeopardyWheel {
   canvas = null;
   ctx = null;
@@ -63,14 +68,9 @@ export class JeopardyWheel {
 
     // create the static background
     this.background = await getStaticImage((ctx) => {
-      ctx.fillStyle = '#333';
+      ctx.fillStyle = '#18243c';
       ctx.beginPath();
       ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
-      ctx.fill();
-
-      ctx.fillStyle = '#555';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, innerRadius, 0, TWO_PI);
       ctx.fill();
     });
 
@@ -80,7 +80,7 @@ export class JeopardyWheel {
     await retryBool(() => this.arrow.ready);
 
     // synchronize initial choices
-    this.syncChoices(choices);
+    this.setChoices(choices);
 
     // setup the mainloop
     MainLoop.setUpdate(this.update);
@@ -102,6 +102,16 @@ export class JeopardyWheel {
     }
   };
   spin = () => {
+    // create the click sound in response to a user gesture
+    // otherwise get an annoying warning
+    if (!clickSound) {
+      clickSound = new Howl({
+        src: [SpinSoundSrc],
+        volume: 0.6,
+        autoplay: false,
+      });
+    }
+
     if (this.spinning || this.segments.length === 0) return;
 
     // start spinning
@@ -130,7 +140,7 @@ export class JeopardyWheel {
   stopUpdate = () => {
     MainLoop.stop();
   };
-  syncChoices = (choices) => {
+  setChoices = (choices) => {
     if (choices.length === 0) {
       this.segments = [];
     } else {
@@ -190,6 +200,7 @@ export class JeopardyWheel {
 
                 if (this.spinning) {
                   this.arrow.bump();
+                  clickSound.play();
                 }
               }
             }
@@ -228,9 +239,9 @@ export class JeopardyWheel {
       this.arrow.update(this.ctx);
 
       // only update tween if currently spinning
-      if(this.spinning) {
+      if (this.spinning) {
         // update tween
-        TWEEN.update();        
+        TWEEN.update();
       }
     } catch (e) {
       console.warn(`MainLoop update failed; with error: ${e}`);
