@@ -1,5 +1,5 @@
 button.primary {
-  @apply px-3 py-2 bg-sky-600 hover:bg-sky-900 text-white;
+  @apply px-3 py-2 bg-sky-500 hover:bg-sky-900 text-white;
 }  
 
 button.primaryOutline {
