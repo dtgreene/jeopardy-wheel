@@ -16,19 +16,6 @@ const innerRadius = 340;
 
 const textDistance = innerRadius * 0.5;
 
-const colors = [
-  '#f94144',
-  '#f3722c',
-  '#f8961e',
-  '#f9844a',
-  '#f9c74f',
-  '#90be6d',
-  '#43aa8b',
-  '#4d908e',
-  '#577590',
-  '#277da1',
-];
-
 // create worker canvas
 const workerCanvas = document.createElement('canvas');
 
@@ -55,9 +42,14 @@ export class JeopardyWheel {
   arcWidth = 0;
   arrow = new Arrow(970, 384);
   target = null;
+  palette = [];
   _onTargetChange = null;
 
-  init = async (canvas, choices) => {
+  constructor(palette) {
+    this.palette = palette;
+  }
+
+  init = async (canvas, choices, palette) => {
     // setup the main canvas
     this.canvas = canvas;
     // set the canvas dimensions
@@ -68,7 +60,7 @@ export class JeopardyWheel {
 
     // create the static background
     this.background = await getStaticImage((ctx) => {
-      ctx.fillStyle = '#18243c';
+      ctx.fillStyle = '#262626';
       ctx.beginPath();
       ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
       ctx.fill();
@@ -79,8 +71,11 @@ export class JeopardyWheel {
     // wait for the arrow image to be ready
     await retryBool(() => this.arrow.ready);
 
-    // synchronize initial choices
+    // set initial choices
     this.setChoices(choices);
+
+    // set initial palette
+    this.palette = prepPalette(palette);
 
     // setup the mainloop
     MainLoop.setUpdate(this.update);
@@ -140,6 +135,17 @@ export class JeopardyWheel {
   stopUpdate = () => {
     MainLoop.stop();
   };
+  setPalette = (palette) => {
+    this.palette = prepPalette(palette);
+
+    for (let i = 0; i < this.segments.length; i++) {
+      this.segments[i].colors = this.palette[i % this.palette.length];
+    }
+
+    if (!this.spinning) {
+      this.update();
+    }
+  };
   setChoices = (choices) => {
     if (choices.length === 0) {
       this.segments = [];
@@ -155,7 +161,7 @@ export class JeopardyWheel {
         return {
           label,
           id,
-          fill: colors[index % colors.length],
+          colors: this.palette[index % this.palette.length],
           arcStart,
           arcEnd,
           angle,
@@ -187,7 +193,7 @@ export class JeopardyWheel {
         this.ctx.strokeStyle = '#333';
         // draw the segments
         this.segments.forEach(
-          ({ label, id, fill, arcStart, arcEnd, angle }) => {
+          ({ label, id, colors, arcStart, arcEnd, angle }) => {
             if (
               (arcStart + this.angle) % TWO_PI > QUARTER_PI &&
               (arcEnd + this.angle) % TWO_PI < QUARTER_PI + this.arcWidth
@@ -205,7 +211,7 @@ export class JeopardyWheel {
               }
             }
 
-            this.ctx.fillStyle = fill;
+            this.ctx.fillStyle = colors[0];
             this.ctx.beginPath();
             this.ctx.moveTo(centerX, centerY);
             this.ctx.arc(
@@ -220,7 +226,7 @@ export class JeopardyWheel {
             this.ctx.stroke();
             this.ctx.globalAlpha = 1;
 
-            this.ctx.fillStyle = '#fff';
+            this.ctx.fillStyle = colors[1];
 
             const textAngle = angle + this.angle;
             const textX = Math.cos(textAngle) * textDistance;
@@ -277,6 +283,18 @@ class Arrow {
   bump = () => {
     this.angle = -0.2;
   };
+}
+
+function prepPalette(palette) {
+  return palette.map((hex) => [hex, getContrastYIQ(hex.slice(1))]);
+}
+
+function getContrastYIQ(hexcolor) {
+  const r = parseInt(hexcolor.substr(0, 2), 16);
+  const g = parseInt(hexcolor.substr(2, 2), 16);
+  const b = parseInt(hexcolor.substr(4, 2), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 128 ? 'black' : 'white';
 }
 
 function getStaticImage(draw) {

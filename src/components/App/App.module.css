@@ -3,7 +3,7 @@ div.listItem {
 }
 
 div.listItem:nth-child(odd) {
-  @apply bg-gray-800;
+  @apply bg-neutral-800;
 }
 
 button.deleteButton {

@@ -20,7 +20,7 @@ export const Toggle = ({ className, disabled, inputProps = {}, name }) => (
     <span
       className={cx(
         styles.slider,
-        'absolute rounded-full top-0 right-0 bottom-0 left-0 bg-gray-600 transition-colors',
+        'absolute rounded-full top-0 right-0 bottom-0 left-0 bg-neutral-600 transition-colors',
         { 'cursor-pointer': !disabled }
       )}
     ></span>
