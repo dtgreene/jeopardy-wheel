@@ -2,8 +2,12 @@ import MainLoop from 'mainloop.js';
 import TWEEN from '@tweenjs/tween.js';
 import debounce from 'lodash.debounce';
 import { Howl } from 'howler';
+import { nanoid } from 'nanoid';
 
 import SpinSoundSrc from '../assets/GenericButton3.wav';
+import ThundercatsSrc from '../assets/thundercats.png';
+import ArrowSrc from '../assets/arrow.png';
+import ErrorSrc from '../assets/error.png';
 
 export const canvasWidth = 1024;
 export const canvasHeight = 768;
@@ -27,9 +31,7 @@ workerCanvas.height = canvasHeight;
 const workerCtx = workerCanvas.getContext('2d');
 
 const TWO_PI = Math.PI * 2;
-const QUARTER_PI = Math.PI * 0.25;
-
-let clickSound = null;
+const HALF_PI = Math.PI * 0.5;
 
 export class JeopardyWheel {
   canvas = null;
@@ -39,10 +41,14 @@ export class JeopardyWheel {
   segments = [];
   angle = 0;
   background = null;
-  arcWidth = 0;
   arrow = new Arrow(970, 384);
   target = null;
   palette = [];
+  thundercatsImage = null;
+  clickSound = null;
+  error = false;
+  errorImage = null;
+  maxSegments = 0;
   _onTargetChange = null;
 
   constructor(palette) {
@@ -50,43 +56,56 @@ export class JeopardyWheel {
   }
 
   init = async (canvas, choices, palette) => {
-    // setup the main canvas
-    this.canvas = canvas;
-    // set the canvas dimensions
-    this.canvas.width = canvasWidth;
-    this.canvas.height = canvasHeight;
-    // get the canvas context
-    this.ctx = this.canvas.getContext('2d');
+    try {
+      // setup the main canvas
+      this.canvas = canvas;
+      // set the canvas dimensions
+      this.canvas.width = canvasWidth;
+      this.canvas.height = canvasHeight;
+      // get the canvas context
+      this.ctx = this.canvas.getContext('2d');
 
-    // create the static background
-    this.background = await getStaticImage((ctx) => {
-      ctx.fillStyle = '#262626';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
-      ctx.fill();
-    });
+      // create the static background
+      this.background = await getStaticImage((ctx) => {
+        ctx.fillStyle = '#262626';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
+        ctx.fill();
+      });
 
-    // wait for font to be ready
-    await retryBool(() => document.fonts.check('12px Poppins'));
-    // wait for the arrow image to be ready
-    await retryBool(() => this.arrow.ready);
+      // load the snarf image
+      this.thundercatsImage = await loadImage(ThundercatsSrc);
 
-    // set initial choices
-    this.setChoices(choices);
+      // load the arrow image
+      await this.arrow.init();
 
-    // set initial palette
-    this.palette = prepPalette(palette);
+      // wait for font to be ready
+      await checkFont('12px Poppins');
 
-    // setup the mainloop
-    MainLoop.setUpdate(this.update);
-    // set ready
-    this.ready = true;
-    // perform a manual update
-    this.update();
+      // set initial palette
+      this.palette = prepPalette(palette);
+
+      // set initial choices
+      this.setChoices(choices);
+
+      // setup the mainloop
+      MainLoop.setUpdate(this.update);
+      // set ready
+      this.ready = true;
+      // perform a manual update
+      this.update();
+    } catch (e) {
+      console.error(`Failed to initialize jeopardy wheel; with error: ${e}`);
+      // panic
+      this.panic();
+    }
   };
   onTargetChange = (callback) => {
     // debounce target change callback due to the high velocity of updates
     this._onTargetChange = debounce(callback, 250);
+  };
+  onFinishSpin = (callback) => {
+    this._onFinishSpin = callback;
   };
   setTarget = (id) => {
     this.target = id;
@@ -99,8 +118,8 @@ export class JeopardyWheel {
   spin = () => {
     // create the click sound in response to a user gesture
     // otherwise get an annoying warning
-    if (!clickSound) {
-      clickSound = new Howl({
+    if (!this.clickSound) {
+      this.clickSound = new Howl({
         src: [SpinSoundSrc],
         volume: 0.6,
         autoplay: false,
@@ -117,6 +136,7 @@ export class JeopardyWheel {
     new TWEEN.Tween(this)
       .to({ angle: this.angle + TWO_PI * 10 + Math.random() * TWO_PI }, 6000)
       .easing(TWEEN.Easing.Quadratic.InOut)
+      // .easing(TWEEN.Easing.Linear.None)
       .onComplete(() => {
         // stop spinning
         this.spinning = false;
@@ -126,6 +146,13 @@ export class JeopardyWheel {
         this.arrow.angle = 0;
         // call one last update
         this.update();
+        // invoke on finish spin if available
+        if (this._onFinishSpin) {
+          // find the current segment
+          const segment = this.segments.find(({ id }) => this.target === id);
+          // if the segment is special, indicate
+          this._onFinishSpin(segment?.special ?? false);
+        }
       })
       .start();
   };
@@ -139,6 +166,7 @@ export class JeopardyWheel {
     this.palette = prepPalette(palette);
 
     for (let i = 0; i < this.segments.length; i++) {
+      if (this.segments[i].special) continue;
       this.segments[i].colors = this.palette[i % this.palette.length];
     }
 
@@ -147,12 +175,55 @@ export class JeopardyWheel {
     }
   };
   setChoices = (choices) => {
+    // track the max segments
+    this.maxSegments = Math.max(choices.length, this.maxSegments);
+
     if (choices.length === 0) {
       this.segments = [];
-    } else {
-      const arcWidth = TWO_PI / choices.length;
-      this.arcWidth = arcWidth;
+    } else if (choices.length === 1 && this.maxSegments > 1) {
+      // only add the special segment when there's been more than one segment previously
 
+      // how much percent does the large segment take
+      const segmentPercent = 0.95;
+
+      // manually create a segment which takes up the majority of the circle
+      let arcWidth = TWO_PI * segmentPercent;
+      let arcStart = 0;
+      let arcEnd = arcStart + arcWidth;
+      let angle = (arcStart + arcEnd) * 0.5;
+
+      const { label, id } = choices[0];
+      this.segments = [
+        {
+          label,
+          id,
+          colors: this.palette[0],
+          arcStart,
+          arcEnd,
+          angle,
+          arcWidth,
+        },
+      ];
+
+      // manually create a small segment
+      arcWidth = TWO_PI * (1 - segmentPercent);
+      arcStart = arcEnd;
+      arcEnd = arcEnd + arcWidth;
+      angle = (arcStart + arcEnd) * 0.5;
+
+      this.segments.push({
+        label: '',
+        id: nanoid(),
+        colors: ['#000', '#fff'],
+        arcStart,
+        arcEnd,
+        angle,
+        arcWidth,
+        special: true, // <3
+      });
+    } else {
+      // in this scenario, all segments are equal widths
+      const arcWidth = TWO_PI / choices.length;
       this.segments = choices.map(({ label, id }, index) => {
         const arcStart = arcWidth * index;
         const arcEnd = arcStart + arcWidth;
@@ -165,17 +236,30 @@ export class JeopardyWheel {
           arcStart,
           arcEnd,
           angle,
+          arcWidth,
         };
       });
-
-      // randomize angle
-      this.angle = Math.random() * TWO_PI;
     }
+    // randomize angle
+    this.angle = Math.random() * TWO_PI;
     // perform a manual update
     this.update();
   };
+  panic = async () => {
+    if (!this.errorImage) {
+      // load the error image
+      this.errorImage = await loadImage(ErrorSrc);
+    }
+    this.error = true;
+    this.update();
+  };
   update = () => {
-    if (!this.ready) return;
+    if (this.error) {
+      if (this.errorImage) {
+        this.ctx.drawImage(this.errorImage, 0, 0);
+      }
+      return;
+    } else if (!this.ready) return;
 
     try {
       this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -193,10 +277,23 @@ export class JeopardyWheel {
         this.ctx.strokeStyle = '#333';
         // draw the segments
         this.segments.forEach(
-          ({ label, id, colors, arcStart, arcEnd, angle }) => {
+          ({
+            label,
+            id,
+            colors,
+            arcStart,
+            arcEnd,
+            angle,
+            arcWidth,
+            special,
+          }) => {
+            // adjust the range of the arc angles to between zero and two PI
+            const rangedArcStart = (arcStart + this.angle) % TWO_PI;
+            const rangedArcEnd = (arcEnd + this.angle) % TWO_PI;
+            // the arrow is effectively at the zero radians mark
             if (
-              (arcStart + this.angle) % TWO_PI > QUARTER_PI &&
-              (arcEnd + this.angle) % TWO_PI < QUARTER_PI + this.arcWidth
+              TWO_PI - rangedArcStart <= arcWidth ||
+              rangedArcEnd < arcWidth
             ) {
               this.ctx.globalAlpha = 0.6;
 
@@ -206,11 +303,10 @@ export class JeopardyWheel {
 
                 if (this.spinning) {
                   this.arrow.bump();
-                  clickSound.play();
+                  this.clickSound.play();
                 }
               }
             }
-
             this.ctx.fillStyle = colors[0];
             this.ctx.beginPath();
             this.ctx.moveTo(centerX, centerY);
@@ -228,15 +324,27 @@ export class JeopardyWheel {
 
             this.ctx.fillStyle = colors[1];
 
-            const textAngle = angle + this.angle;
-            const textX = Math.cos(textAngle) * textDistance;
-            const textY = Math.sin(textAngle) * textDistance;
+            const segmentAngle = angle + this.angle;
+            // draw either the image or the text
+            if (special) {
+              const x = Math.cos(segmentAngle) * 300;
+              const y = Math.sin(segmentAngle) * 300;
 
-            this.ctx.save();
-            this.ctx.translate(centerX + textX, centerY + textY);
-            this.ctx.rotate(textAngle);
-            this.ctx.fillText(label, 0, 0);
-            this.ctx.restore();
+              this.ctx.save();
+              this.ctx.translate(centerX + x, centerY + y);
+              this.ctx.rotate(segmentAngle - HALF_PI);
+              this.ctx.drawImage(this.thundercatsImage, -30, -30, 60, 60);
+              this.ctx.restore();
+            } else {
+              const x = Math.cos(segmentAngle) * textDistance;
+              const y = Math.sin(segmentAngle) * textDistance;
+
+              this.ctx.save();
+              this.ctx.translate(centerX + x, centerY + y);
+              this.ctx.rotate(segmentAngle);
+              this.ctx.fillText(label, 0, 0);
+              this.ctx.restore();
+            }
           }
         );
       }
@@ -258,17 +366,15 @@ export class JeopardyWheel {
 
 class Arrow {
   pos = { x: 0, y: 0 };
-  image = new Image();
+  image = null;
   angle = 0;
   tween = null;
-  ready = false;
   constructor(x, y) {
     this.pos = { x, y };
-    this.image.onload = () => {
-      this.ready = true;
-    };
-    this.image.src = 'arrow.png';
   }
+  init = async () => {
+    this.image = await loadImage(ArrowSrc);
+  };
   update = (ctx) => {
     ctx.save();
     ctx.translate(this.pos.x, this.pos.y);
@@ -311,12 +417,21 @@ function getStaticImage(draw) {
   });
 }
 
-function retryBool(condition, maxTries = 10, t = 100) {
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const image = new Image();
+    image.onload = () => res(image);
+    image.onerror = rej;
+    image.src = src;
+  });
+}
+
+function checkFont(font, maxTries = 10, t = 100) {
   return new Promise(async (res, rej) => {
     try {
       let tries = 0;
       while (tries++ < maxTries) {
-        if (condition()) {
+        if (document.fonts.check(font)) {
           res();
         } else {
           await new Promise((res) => setTimeout(res, t));

@@ -12,11 +12,13 @@ import produce from 'immer';
 
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { useLocalStorage } from 'src/hooks';
-import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
 import { Dropdown } from '../Dropdown';
+
+import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
+import AirhornSoundSrc from 'src/assets/airhorn.ogg';
 
 import styles from './App.module.css';
 
@@ -35,6 +37,7 @@ const canvasStyle = {
   maxWidth: canvasWidth,
 };
 let spinClickSound = null;
+let airhornSound = null;
 
 export const App = () => {
   const canvasRef = useRef();
@@ -55,6 +58,23 @@ export const App = () => {
     );
     // subscribe to target changes
     wheel.onTargetChange((id) => setLastTarget(id));
+    // subscribe to spin finish
+    wheel.onFinishSpin((special) => {
+      // play a special sound if the selection is special
+      if (special) {
+        // create the sound in response to a user gesture
+        // otherwise get an annoying warning
+        if (!airhornSound) {
+          airhornSound = new Howl({
+            src: [AirhornSoundSrc],
+            volume: 0.6,
+            autoplay: true,
+          });
+        } else {
+          airhornSound.play();
+        }
+      }
+    });
     // mute
     if (storage.muted) {
       Howler.mute(storage.mute);
@@ -131,7 +151,7 @@ export const App = () => {
   };
 
   const handleSpinClick = () => {
-    // create the click sound in response to a user gesture
+    // create the sound in response to a user gesture
     // otherwise get an annoying warning
     if (!spinClickSound) {
       spinClickSound = new Howl({
