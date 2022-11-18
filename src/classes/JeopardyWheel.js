@@ -133,8 +133,11 @@ export class JeopardyWheel {
     // start updating
     this.startUpdate();
 
+    const time = 4000 + Math.random() * 4000;
+    const angle = this.angle + TWO_PI * 10 + Math.random() * (TWO_PI * 2);
+
     new TWEEN.Tween(this)
-      .to({ angle: this.angle + TWO_PI * 10 + Math.random() * TWO_PI }, 6000)
+      .to({ angle }, time)
       .easing(TWEEN.Easing.Quadratic.InOut)
       // .easing(TWEEN.Easing.Linear.None)
       .onComplete(() => {
