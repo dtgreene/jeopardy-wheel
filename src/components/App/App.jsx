@@ -9,6 +9,7 @@ import { nanoid } from 'nanoid';
 import { Howl, Howler } from 'howler';
 import cx from 'classnames';
 import produce from 'immer';
+import confetti from 'canvas-confetti';
 
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { useLocalStorage } from 'src/hooks';
@@ -38,7 +39,6 @@ const canvasStyle = {
 };
 let spinClickSound = null;
 let airhornSound = null;
-
 export const App = () => {
   const canvasRef = useRef();
   const [formError, setFormError] = useState('');
@@ -61,7 +61,7 @@ export const App = () => {
     // subscribe to spin finish
     wheel.onFinishSpin((special) => {
       // play a special sound if the selection is special
-      if (special) {
+      if (special || true) {
         // create the sound in response to a user gesture
         // otherwise get an annoying warning
         if (!airhornSound) {
@@ -72,6 +72,11 @@ export const App = () => {
           });
         } else {
           airhornSound.play();
+        }
+
+        // stars
+        for(let i = 0; i < 10; i++) {
+          setTimeout(shootStars, i * 100);
         }
       }
     });
@@ -263,3 +268,29 @@ export const App = () => {
     </div>
   );
 };
+
+function shootStars() {
+  var defaults = {
+    spread: 360,
+    ticks: 50,
+    gravity: 0,
+    decay: 0.94,
+    startVelocity: 30,
+    shapes: ['star'],
+    colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
+  };
+
+  confetti({
+    ...defaults,
+    particleCount: 40,
+    scalar: 1.2,
+    shapes: ['star'],
+  });
+
+  confetti({
+    ...defaults,
+    particleCount: 10,
+    scalar: 0.75,
+    shapes: ['circle'],
+  });
+}
