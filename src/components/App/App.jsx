@@ -61,7 +61,7 @@ export const App = () => {
     // subscribe to spin finish
     wheel.onFinishSpin((special) => {
       // play a special sound if the selection is special
-      if (special || true) {
+      if (special) {
         // create the sound in response to a user gesture
         // otherwise get an annoying warning
         if (!airhornSound) {
