@@ -168,6 +168,8 @@ export class JeopardyWheel {
   setChoices = (choices) => {
     // track the max segments
     this.maxSegments = Math.max(choices.length, this.maxSegments);
+    // reset if choices go away
+    if(choices.length === 0) this.maxSegments = 0;
 
     if (choices.length === 0) {
       this.segments = [];
