@@ -49,7 +49,7 @@ export class JeopardyWheel {
   error = false;
   errorImage = null;
   maxSegments = 0;
-  _onTargetChange = null;
+  _onFinishSpin = null;
 
   constructor(palette) {
     this.palette = palette;
@@ -100,20 +100,8 @@ export class JeopardyWheel {
       this.panic();
     }
   };
-  onTargetChange = (callback) => {
-    // debounce target change callback due to the high velocity of updates
-    this._onTargetChange = debounce(callback, 250);
-  };
   onFinishSpin = (callback) => {
     this._onFinishSpin = callback;
-  };
-  setTarget = (id) => {
-    this.target = id;
-
-    // invoke callback if available
-    if (this._onTargetChange) {
-      this._onTargetChange(id);
-    }
   };
   spin = () => {
     // create the click sound in response to a user gesture
@@ -121,7 +109,7 @@ export class JeopardyWheel {
     if (!this.clickSound) {
       this.clickSound = new Howl({
         src: [SpinSoundSrc],
-        volume: 0.6,
+        volume: 0.4,
         autoplay: false,
       });
     }
@@ -154,7 +142,7 @@ export class JeopardyWheel {
           // find the current segment
           const segment = this.segments.find(({ id }) => this.target === id);
           // if the segment is special, indicate
-          this._onFinishSpin(segment?.special ?? false);
+          this._onFinishSpin(segment);
         }
       })
       .start();
@@ -302,7 +290,7 @@ export class JeopardyWheel {
 
               // set last target
               if (this.target !== id) {
-                this.setTarget(id);
+                this.target = id;
 
                 if (this.spinning) {
                   this.arrow.bump();

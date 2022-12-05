@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useContext } from 'react';
 import {
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
-  TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { nanoid } from 'nanoid';
@@ -12,11 +11,13 @@ import produce from 'immer';
 import confetti from 'canvas-confetti';
 
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
+import { ModalContext } from 'src/context/Modal';
 import { useLocalStorage } from 'src/hooks';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
 import { Dropdown } from '../Dropdown';
+import { ResultsModal } from '../ResultsModal';
 
 import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 import AirhornSoundSrc from 'src/assets/airhorn.ogg';
@@ -31,6 +32,16 @@ const palettes = [
   ['#202c39', '#283845', '#b8b08d', '#f2d492', '#f29559'],
   ['#006ba6', '#0496ff', '#ffbc42', '#d81159', '#8f2d56'],
 ];
+
+const starSettings = {
+  spread: 360,
+  ticks: 50,
+  gravity: 0,
+  decay: 0.94,
+  startVelocity: 30,
+  shapes: ['star'],
+  colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
+};
 
 const wheel = new JeopardyWheel(palettes[0]);
 const canvasStyle = {
@@ -47,7 +58,7 @@ export const App = () => {
     muted: false,
     paletteIndex: 0,
   });
-  const [lastTarget, setLastTarget] = useState(null);
+  const { open } = useContext(ModalContext);
 
   useEffect(() => {
     // initialize the wheel
@@ -56,12 +67,10 @@ export const App = () => {
       storage.choices,
       palettes[storage.paletteIndex]
     );
-    // subscribe to target changes
-    wheel.onTargetChange((id) => setLastTarget(id));
     // subscribe to spin finish
-    wheel.onFinishSpin((special) => {
+    wheel.onFinishSpin((choice) => {
       // play a special sound if the selection is special
-      if (special) {
+      if (choice.special) {
         // create the sound in response to a user gesture
         // otherwise get an annoying warning
         if (!airhornSound) {
@@ -75,9 +84,11 @@ export const App = () => {
         }
 
         // stars
-        for(let i = 0; i < 10; i++) {
+        for (let i = 0; i < 10; i++) {
           setTimeout(shootStars, i * 100);
         }
+      } else {
+        open(ResultsModal, { onDelete: handleRemoveChoice, choice });
       }
     });
     // mute
@@ -85,16 +96,6 @@ export const App = () => {
       Howler.mute(storage.mute);
     }
   }, []);
-
-  const setChoices = (value) => {
-    setStorage(
-      produce((draft) => {
-        draft.choices = value;
-      })
-    );
-    // sync the wheel
-    wheel.setChoices(value);
-  };
 
   const handleColorClick = (index) => {
     setStorage(
@@ -136,10 +137,16 @@ export const App = () => {
       return;
     } else {
       // add the new choice
-      setChoices(
-        storage.choices.concat({
-          label: choiceLabel,
-          id: nanoid(),
+      setStorage(
+        produce((draft) => {
+          const value = draft.choices.concat({
+            label: choiceLabel,
+            id: nanoid(),
+          });
+          // mutate choices
+          draft.choices = value;
+          // sync wheel
+          wheel.setChoices(value);
         })
       );
       // reset the form
@@ -152,7 +159,15 @@ export const App = () => {
   const handleRemoveChoice = (id) => {
     if (wheel.spinning) return;
 
-    setChoices(storage.choices.filter((choice) => choice.id !== id));
+    setStorage(
+      produce((draft) => {
+        const value = draft.choices.filter((choice) => choice.id !== id);
+        // mutate choices
+        draft.choices = value;
+        // sync wheel
+        wheel.setChoices(value);
+      })
+    );
   };
 
   const handleSpinClick = () => {
@@ -168,12 +183,6 @@ export const App = () => {
     spinClickSound.play();
 
     wheel.spin();
-  };
-
-  const handleDeleteClick = () => {
-    if (lastTarget) {
-      handleRemoveChoice(lastTarget);
-    }
   };
 
   return (
@@ -202,28 +211,19 @@ export const App = () => {
                 ))}
               </Dropdown>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondaryOutline"
-                onClick={handleDeleteClick}
-                disabled={!lastTarget}
+            <Button variant="secondaryOutline" onClick={handleMuteClick}>
+              <div
+                className={cx('transition-colors', {
+                  'text-red-500': storage.muted,
+                })}
               >
-                <TrashIcon width={20} height={20} />
-              </Button>
-              <Button variant="secondaryOutline" onClick={handleMuteClick}>
-                <div
-                  className={cx('transition-colors', {
-                    'text-red-500': storage.muted,
-                  })}
-                >
-                  {storage.muted ? (
-                    <SpeakerXMarkIcon width={20} height={20} />
-                  ) : (
-                    <SpeakerWaveIcon width={20} height={20} />
-                  )}
-                </div>
-              </Button>
-            </div>
+                {storage.muted ? (
+                  <SpeakerXMarkIcon width={20} height={20} />
+                ) : (
+                  <SpeakerWaveIcon width={20} height={20} />
+                )}
+              </div>
+            </Button>
           </div>
           <SpinButton onClick={handleSpinClick}>Spin the Wheel</SpinButton>
         </div>
@@ -270,25 +270,14 @@ export const App = () => {
 };
 
 function shootStars() {
-  var defaults = {
-    spread: 360,
-    ticks: 50,
-    gravity: 0,
-    decay: 0.94,
-    startVelocity: 30,
-    shapes: ['star'],
-    colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
-  };
-
   confetti({
-    ...defaults,
+    ...starSettings,
     particleCount: 40,
     scalar: 1.2,
     shapes: ['star'],
   });
-
   confetti({
-    ...defaults,
+    ...starSettings,
     particleCount: 10,
     scalar: 0.75,
     shapes: ['circle'],
