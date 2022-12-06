@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useContext } from 'react';
+import { useEffect, useRef, useState, useContext, useCallback } from 'react';
 import {
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
@@ -41,6 +41,7 @@ const starSettings = {
   startVelocity: 30,
   shapes: ['star'],
   colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
+  useWorker: true,
 };
 
 const wheel = new JeopardyWheel(palettes[0]);
@@ -67,6 +68,32 @@ export const App = () => {
       storage.choices,
       palettes[storage.paletteIndex]
     );
+    // mute
+    if (storage.muted) {
+      Howler.mute(storage.mute);
+    }
+  }, []);
+
+  // useCallback due to being in the dependency array
+  const handleRemoveChoice = useCallback(
+    (id) => {
+      if (wheel.spinning) return;
+
+      setStorage(
+        produce((draft) => {
+          // filter out choices
+          const value = draft.choices.filter((choice) => choice.id !== id);
+          // mutate choices
+          draft.choices = value;
+          // sync wheel
+          wheel.setChoices(value);
+        })
+      );
+    },
+    [setStorage]
+  );
+
+  useEffect(() => {
     // subscribe to spin finish
     wheel.onFinishSpin((choice) => {
       // play a special sound if the selection is special
@@ -91,11 +118,7 @@ export const App = () => {
         open(ResultsModal, { onDelete: handleRemoveChoice, choice });
       }
     });
-    // mute
-    if (storage.muted) {
-      Howler.mute(storage.mute);
-    }
-  }, []);
+  }, [handleRemoveChoice]);
 
   const handleColorClick = (index) => {
     setStorage(
@@ -154,20 +177,6 @@ export const App = () => {
       // reset form errors
       setFormError();
     }
-  };
-
-  const handleRemoveChoice = (id) => {
-    if (wheel.spinning) return;
-
-    setStorage(
-      produce((draft) => {
-        const value = draft.choices.filter((choice) => choice.id !== id);
-        // mutate choices
-        draft.choices = value;
-        // sync wheel
-        wheel.setChoices(value);
-      })
-    );
   };
 
   const handleSpinClick = () => {

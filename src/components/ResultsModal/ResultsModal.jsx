@@ -14,6 +14,7 @@ const fireworkDefaults = {
   startVelocity: 30,
   spread: 360,
   ticks: 60,
+  useWorker: true,
 };
 let successSound = null;
 let fireworkEnd = 0;
