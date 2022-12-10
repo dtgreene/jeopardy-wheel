@@ -1,0 +1,119 @@
+:root {
+  --color-1: #c501e2;
+  --color-1-fade: #7b138b;
+  --color-2: #2ef8a0;
+  --color-2-fade: #159c62;
+  --color-3: #ff0534;
+  --color-3-fade: #aa102c;
+  --color-4: #f82d97;
+  --color-4-fade: #961e5c;
+  --color-5: #01c4e7;
+  --color-5-fade: #25899b;
+}
+
+.container.row {
+  width: var(--light-spacing);
+  @apply flex justify-center items-center py-2;
+}
+
+.container.col {
+  height: var(--light-spacing);
+  @apply flex flex-col justify-center items-center px-2;
+}
+
+.container.row .socket {
+  @apply absolute z-0 w-2 h-4 rounded-sm bg-green-800;
+}
+
+.container.col .socket {
+  @apply absolute z-0 w-4 h-2 rounded-sm bg-green-800;
+}
+
+.bulb {
+  @apply z-10 w-4 h-4 rounded-full transition-colors;
+}
+
+.container:nth-child(5n + 1) .bulb {
+  box-shadow: 0 0 16px var(--color-1);
+  background: var(--color-1);
+  animation: animation-1 1s infinite alternate-reverse;
+}
+
+.container:nth-child(5n + 2) .bulb {
+  box-shadow: 0 0 16px var(--color-2);
+  background: var(--color-2);
+  animation: animation-2 1s infinite alternate-reverse -1s;
+}
+
+.container:nth-child(5n + 3) .bulb {
+  box-shadow: 0 0 16px var(--color-3);
+  background: var(--color-3);
+  animation: animation-3 1s infinite alternate-reverse -2s;
+}
+
+.container:nth-child(5n + 4) .bulb {
+  box-shadow: 0 0 16px var(--color-4);
+  background: var(--color-4);
+  animation: animation-4 1s infinite alternate-reverse -3s;
+}
+
+.container:nth-child(5n + 5) .bulb {
+  box-shadow: 0 0 16px var(--color-5);
+  background: var(--color-5);
+  animation: animation-5 1s infinite alternate-reverse -4s;
+}
+
+@keyframes animation-1 {
+  from {
+    background: var(--color-1);
+    box-shadow: 0 0 16px var(--color-1);
+  }
+  to {
+    background: var(--color-1-fade);
+    box-shadow: 0 0 16px var(--color-1-fade);
+  }
+}
+
+@keyframes animation-2 {
+  from {
+    background: var(--color-2);
+    box-shadow: 0 0 16px var(--color-2);
+  }
+  to {
+    background: var(--color-2-fade);
+    box-shadow: 0 0 16px var(--color-2-fade);
+  }
+}
+
+@keyframes animation-3 {
+  from {
+    background: var(--color-3);
+    box-shadow: 0 0 16px var(--color-3);
+  }
+  to {
+    background: var(--color-3-fade);
+    box-shadow: 0 0 16px var(--color-3-fade);
+  }
+}
+
+@keyframes animation-4 {
+  from {
+    background: var(--color-4);
+    box-shadow: 0 0 16px var(--color-4);
+  }
+  to {
+    background: var(--color-4-fade);
+    box-shadow: 0 0 16px var(--color-4-fade);
+  }
+}
+
+@keyframes animation-5 {
+  from {
+    background: var(--color-5);
+    box-shadow: 0 0 16px var(--color-5);
+  }
+  to {
+    background: var(--color-5-fade);
+    box-shadow: 0 0 16px var(--color-5-fade);
+  }
+}

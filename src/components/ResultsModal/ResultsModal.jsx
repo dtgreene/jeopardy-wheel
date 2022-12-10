@@ -95,7 +95,7 @@ export const ResultsModal = ({ modalState, close, onDelete, choice }) => {
               <Dialog.Title className="text-lg font-bold mb-2">
                 Results
               </Dialog.Title>
-              <Dialog.Description className="text-8xl text-center my-12">
+              <Dialog.Description className="text-8xl text-center p-12">
                 {choice?.label}
               </Dialog.Description>
             </div>

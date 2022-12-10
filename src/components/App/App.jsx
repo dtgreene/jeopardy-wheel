@@ -18,6 +18,7 @@ import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
 import { Dropdown } from '../Dropdown';
 import { ResultsModal } from '../ResultsModal';
+import { ChristmasLights } from '../ChristmasLights';
 
 import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 import AirhornSoundSrc from 'src/assets/airhorn.ogg';
@@ -195,86 +196,89 @@ export const App = () => {
   };
 
   return (
-    <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start p-8 gap-8">
-      <div className="flex-2 flex flex-col justify-center items-center">
-        <canvas ref={canvasRef} className="w-full" style={canvasStyle} />
-        <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
-          <div className="absolute left-0 flex justify-between w-full">
-            <div>
-              <Dropdown label="Colors">
-                {palettes.map((palette, index) => (
-                  <Dropdown.Button
-                    key={index}
-                    onClick={() => handleColorClick(index)}
-                  >
-                    <div className="flex py-1 select-none">
-                      {palette.map((hex) => (
-                        <div
-                          style={{ background: hex }}
-                          className="w-6 h-6"
-                          key={hex}
-                        ></div>
-                      ))}
-                    </div>
-                  </Dropdown.Button>
-                ))}
-              </Dropdown>
-            </div>
-            <Button variant="secondaryOutline" onClick={handleMuteClick}>
-              <div
-                className={cx('transition-colors', {
-                  'text-red-500': storage.muted,
-                })}
-              >
-                {storage.muted ? (
-                  <SpeakerXMarkIcon width={20} height={20} />
-                ) : (
-                  <SpeakerWaveIcon width={20} height={20} />
-                )}
+    <main>
+      <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start p-8 gap-8 my-8">
+        <div className="flex-2 flex flex-col justify-center items-center">
+          <canvas ref={canvasRef} className="w-full" style={canvasStyle} />
+          <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
+            <div className="absolute left-0 flex justify-between w-full">
+              <div>
+                <Dropdown label="Colors">
+                  {palettes.map((palette, index) => (
+                    <Dropdown.Button
+                      key={index}
+                      onClick={() => handleColorClick(index)}
+                    >
+                      <div className="flex py-1 select-none">
+                        {palette.map((hex) => (
+                          <div
+                            style={{ background: hex }}
+                            className="w-6 h-6"
+                            key={hex}
+                          ></div>
+                        ))}
+                      </div>
+                    </Dropdown.Button>
+                  ))}
+                </Dropdown>
               </div>
-            </Button>
-          </div>
-          <SpinButton onClick={handleSpinClick}>Spin the Wheel</SpinButton>
-        </div>
-      </div>
-      <div className="flex-1 w-full 2xl:w-auto">
-        <div className="mb-4 border-b border-neutral-600">Choices</div>
-        <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96">
-          {storage.choices.length === 0 && (
-            <div className="px-2 py-1 text-neutral-500">
-              No choices have been added
-            </div>
-          )}
-          {storage.choices.map(({ id, label }) => (
-            <div key={id} className={styles.listItem}>
-              <span>{label}</span>
-              <Button
-                className={styles.deleteButton}
-                onClick={() => handleRemoveChoice(id)}
-              >
-                <XMarkIcon width={20} height={20} />
+              <Button variant="secondaryOutline" onClick={handleMuteClick}>
+                <div
+                  className={cx('transition-colors', {
+                    'text-red-500': storage.muted,
+                  })}
+                >
+                  {storage.muted ? (
+                    <SpeakerXMarkIcon width={20} height={20} />
+                  ) : (
+                    <SpeakerWaveIcon width={20} height={20} />
+                  )}
+                </div>
               </Button>
             </div>
-          ))}
-        </div>
-        <form onSubmit={handleChoiceSubmit}>
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex-1">
-              <Input
-                name="choice"
-                type="text"
-                placeholder="Enter an choice"
-                autoComplete="off"
-              />
-            </div>
-            <Button type="submit" variant="primaryOutline">
-              <span>Add Choice</span>
-            </Button>
+            <SpinButton onClick={handleSpinClick}>Spin the Wheel</SpinButton>
           </div>
-        </form>
-        {formError && <div className="text-sm text-red-400">{formError}</div>}
+        </div>
+        <div className="flex-1 w-full 2xl:w-auto">
+          <div className="mb-4 border-b border-neutral-600">Choices</div>
+          <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96">
+            {storage.choices.length === 0 && (
+              <div className="px-2 py-1 text-neutral-500">
+                No choices have been added
+              </div>
+            )}
+            {storage.choices.map(({ id, label }) => (
+              <div key={id} className={styles.listItem}>
+                <span>{label}</span>
+                <Button
+                  className={styles.deleteButton}
+                  onClick={() => handleRemoveChoice(id)}
+                >
+                  <XMarkIcon width={20} height={20} />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleChoiceSubmit}>
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex-1">
+                <Input
+                  name="choice"
+                  type="text"
+                  placeholder="Enter an choice"
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" variant="primaryOutline">
+                <span>Add Choice</span>
+              </Button>
+            </div>
+          </form>
+          {formError && <div className="text-sm text-red-400">{formError}</div>}
+        </div>
       </div>
-    </div>
+      <ChristmasLights />
+    </main>
   );
 };
 
