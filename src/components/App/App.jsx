@@ -16,7 +16,6 @@ import { useLocalStorage } from 'src/hooks';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
-import { Dropdown } from '../Dropdown';
 import { ResultsModal } from '../ResultsModal';
 import { ChristmasLights } from '../ChristmasLights';
 
@@ -24,15 +23,6 @@ import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 import AirhornSoundSrc from 'src/assets/airhorn.ogg';
 
 import styles from './App.module.css';
-
-const palettes = [
-  ['#ee6055', '#60d394', '#aaf683', '#ffd97d', '#ff9b85'],
-  ['#071e22', '#1d7874', '#679289', '#f4c095', '#ee2e31'],
-  ['#93b5c6', '#ddedaa', '#f0cf65', '#d7816a', '#bd4f6c'],
-  ['#0b132b', '#1c2541', '#3a506b', '#5bc0be', '#6fffe9'],
-  ['#202c39', '#283845', '#b8b08d', '#f2d492', '#f29559'],
-  ['#006ba6', '#0496ff', '#ffbc42', '#d81159', '#8f2d56'],
-];
 
 const starSettings = {
   spread: 360,
@@ -45,7 +35,7 @@ const starSettings = {
   useWorker: true,
 };
 
-const wheel = new JeopardyWheel(palettes[0]);
+const wheel = new JeopardyWheel();
 const canvasStyle = {
   minWidth: '300px',
   maxWidth: canvasWidth,
@@ -58,7 +48,6 @@ export const App = () => {
   const [storage, setStorage] = useLocalStorage('jeopardy-wheel', {
     choices: [],
     muted: false,
-    paletteIndex: 0,
   });
   const { open } = useContext(ModalContext);
 
@@ -67,7 +56,6 @@ export const App = () => {
     wheel.init(
       canvasRef.current,
       storage.choices,
-      palettes[storage.paletteIndex]
     );
     // mute
     if (storage.muted) {
@@ -120,16 +108,6 @@ export const App = () => {
       }
     });
   }, [handleRemoveChoice]);
-
-  const handleColorClick = (index) => {
-    setStorage(
-      produce((draft) => {
-        draft.paletteIndex = index;
-      })
-    );
-    // sync the wheel
-    wheel.setPalette(palettes[index]);
-  };
 
   const handleMuteClick = () => {
     setStorage(
@@ -201,27 +179,7 @@ export const App = () => {
         <div className="flex-2 flex flex-col justify-center items-center">
           <canvas ref={canvasRef} className="w-full" style={canvasStyle} />
           <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
-            <div className="absolute left-0 flex justify-between w-full">
-              <div>
-                <Dropdown label="Colors">
-                  {palettes.map((palette, index) => (
-                    <Dropdown.Button
-                      key={index}
-                      onClick={() => handleColorClick(index)}
-                    >
-                      <div className="flex py-1 select-none">
-                        {palette.map((hex) => (
-                          <div
-                            style={{ background: hex }}
-                            className="w-6 h-6"
-                            key={hex}
-                          ></div>
-                        ))}
-                      </div>
-                    </Dropdown.Button>
-                  ))}
-                </Dropdown>
-              </div>
+            <div className="absolute left-0 flex justify-end w-full">
               <Button variant="secondaryOutline" onClick={handleMuteClick}>
                 <div
                   className={cx('transition-colors', {

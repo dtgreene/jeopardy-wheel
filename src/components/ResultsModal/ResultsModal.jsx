@@ -15,6 +15,7 @@ const fireworkDefaults = {
   spread: 360,
   ticks: 60,
   useWorker: true,
+  colors: ['#fff']
 };
 let successSound = null;
 let fireworkEnd = 0;
@@ -31,7 +32,7 @@ export const ResultsModal = ({ modalState, close, onDelete, choice }) => {
         if (timeLeft <= 0) {
           return clearInterval(fireworkInterval);
         }
-        const particleCount = 50 * (timeLeft / fireworkDuration);
+        const particleCount = 30 * (timeLeft / fireworkDuration);
         // since particles fall down, start a bit higher than random
         confetti(
           Object.assign({}, fireworkDefaults, {
@@ -45,7 +46,7 @@ export const ResultsModal = ({ modalState, close, onDelete, choice }) => {
             origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
           })
         );
-      }, 250);
+      }, 300);
 
       // create the sound in response to a user gesture
       // otherwise get an annoying warning

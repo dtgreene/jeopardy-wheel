@@ -4,8 +4,6 @@ import cx from 'classnames';
 import styles from './ChristmasLights.module.css';
 
 const spacing = 64;
-const root = document.querySelector(':root');
-root.style.setProperty('--light-spacing', `${spacing}px`);
 
 export const ChristmasLights = () => {
   const [cols, setCols] = useState([]);
@@ -26,53 +24,31 @@ export const ChristmasLights = () => {
 
   return (
     <>
-      <LightRow cols={cols} />
-      <LightColumn rows={rows} />
-      <LightColumn rows={rows} end />
-      <LightRow cols={cols} end />
+      <LightGroup items={cols} />
+      <LightGroup items={rows} orientation="col" />
+      <LightGroup items={rows} orientation="col" position="end" />
+      <LightGroup items={cols} position="end" />
     </>
   );
 };
 
-const LightRow = ({ cols, end } = { cols: [], end: false }) => (
-  <div
-    className={cx('fixed pointer-events-none flex justify-center items-center w-full left-0', {
-      'bottom-0': end,
-      'top-0': !end,
-    })}
-  >
-    {cols.map((value) => (
-      <div key={value} className={cx(styles.container, styles.row)}>
-        <div
-          className={cx(styles.socket, {
-            'bottom-0': end,
-            'top-0': !end,
-          })}
-        ></div>
-        <div className={styles.bulb}></div>
-      </div>
-    ))}
-  </div>
-);
-
-const LightColumn = ({ rows, end } = { rows: [], end: false }) => (
-  <div
-    className={cx(
-      'fixed pointer-events-none flex justify-center items-center h-full flex-col top-0',
-      {
-        'left-0': end,
-        'right-0': !end,
-      }
-    )}
-  >
-    {rows.map((value) => (
-      <div key={value} className={cx(styles.container, styles.col)}>
-        <div
-          className={cx(styles.socket, {
-            'left-0': end,
-            'right-0': !end,
-          })}
-        ></div>
+const LightGroup = ({ items, orientation = 'row', position = 'start' }) => (
+  <div className={cx(styles.lightGroup, styles[orientation], styles[position])}>
+    {items.map((value) => (
+      <div key={value} className={styles.container}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 64 64"
+          className={styles.wire}
+        >
+          <path
+            fill="none"
+            stroke="#294b29"
+            strokeWidth="2"
+            d="M0,32 Q32,64 64,32"
+          />
+        </svg>
+        <div className={styles.socket}></div>
         <div className={styles.bulb}></div>
       </div>
     ))}

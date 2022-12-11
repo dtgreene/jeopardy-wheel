@@ -1,6 +1,4 @@
 import MainLoop from 'mainloop.js';
-import TWEEN from '@tweenjs/tween.js';
-import debounce from 'lodash.debounce';
 import { Howl } from 'howler';
 import { nanoid } from 'nanoid';
 
@@ -20,6 +18,9 @@ const innerRadius = 340;
 
 const textDistance = innerRadius * 0.5;
 
+const colors = ['#073842', '#D44359', '#E8A36A', '#0B5D51', '#9C3161'];
+const palette = prepPalette(colors);
+
 // create worker canvas
 const workerCanvas = document.createElement('canvas');
 
@@ -38,12 +39,15 @@ export class JeopardyWheel {
   ctx = null;
   ready = false;
   spinning = false;
+  spinStartTime = 0;
+  spinDuration = 0;
   segments = [];
   angle = 0;
+  angleDelta = 0;
+  startAngle = 0;
   background = null;
   arrow = new Arrow(970, 384);
   target = null;
-  palette = [];
   thundercatsImage = null;
   clickSound = null;
   error = false;
@@ -51,11 +55,7 @@ export class JeopardyWheel {
   maxSegments = 0;
   _onFinishSpin = null;
 
-  constructor(palette) {
-    this.palette = palette;
-  }
-
-  init = async (canvas, choices, palette) => {
+  init = async (canvas, choices) => {
     try {
       // setup the main canvas
       this.canvas = canvas;
@@ -81,9 +81,6 @@ export class JeopardyWheel {
 
       // wait for font to be ready
       await checkFont('12px Poppins');
-
-      // set initial palette
-      this.palette = prepPalette(palette);
 
       // set initial choices
       this.setChoices(choices);
@@ -116,36 +113,16 @@ export class JeopardyWheel {
 
     if (this.spinning || this.segments.length === 0) return;
 
+    // set spin variables
+    this.spinStartTime = Date.now();
+    this.spinDuration = 4000 + Math.random() * 4000;
+    this.angleDelta = TWO_PI * 10 + Math.random() * (TWO_PI * 2);
+    this.startAngle = this.angle;
+
     // start spinning
     this.spinning = true;
     // start updating
     this.startUpdate();
-
-    const time = 4000 + Math.random() * 4000;
-    const angle = this.angle + TWO_PI * 10 + Math.random() * (TWO_PI * 2);
-
-    new TWEEN.Tween(this)
-      .to({ angle }, time)
-      .easing(TWEEN.Easing.Quadratic.InOut)
-      // .easing(TWEEN.Easing.Linear.None)
-      .onComplete(() => {
-        // stop spinning
-        this.spinning = false;
-        // stop updating
-        this.stopUpdate();
-        // reset the arrow angle
-        this.arrow.angle = 0;
-        // call one last update
-        this.update();
-        // invoke on finish spin if available
-        if (this._onFinishSpin) {
-          // find the current segment
-          const segment = this.segments.find(({ id }) => this.target === id);
-          // if the segment is special, indicate
-          this._onFinishSpin(segment);
-        }
-      })
-      .start();
   };
   startUpdate = () => {
     MainLoop.start();
@@ -153,23 +130,11 @@ export class JeopardyWheel {
   stopUpdate = () => {
     MainLoop.stop();
   };
-  setPalette = (palette) => {
-    this.palette = prepPalette(palette);
-
-    for (let i = 0; i < this.segments.length; i++) {
-      if (this.segments[i].special) continue;
-      this.segments[i].colors = this.palette[i % this.palette.length];
-    }
-
-    if (!this.spinning) {
-      this.update();
-    }
-  };
   setChoices = (choices) => {
     // track the max segments
     this.maxSegments = Math.max(choices.length, this.maxSegments);
     // reset if choices go away
-    if(choices.length === 0) this.maxSegments = 0;
+    if (choices.length === 0) this.maxSegments = 0;
 
     if (choices.length === 0) {
       this.segments = [];
@@ -190,7 +155,7 @@ export class JeopardyWheel {
         {
           label,
           id,
-          colors: this.palette[0],
+          colors: palette[0],
           arcStart,
           arcEnd,
           angle,
@@ -225,7 +190,7 @@ export class JeopardyWheel {
         return {
           label,
           id,
-          colors: this.palette[index % this.palette.length],
+          colors: palette[index % palette.length],
           arcStart,
           arcEnd,
           angle,
@@ -345,10 +310,34 @@ export class JeopardyWheel {
       // update the arrow
       this.arrow.update(this.ctx);
 
-      // only update tween if currently spinning
+      // only update if currently spinning
       if (this.spinning) {
-        // update tween
-        TWEEN.update();
+        const timeDelta = Date.now() - this.spinStartTime;
+        // calculate the current angle for the current time
+        this.angle = easeInOutQuad(
+          timeDelta,
+          this.startAngle,
+          this.angleDelta,
+          this.spinDuration
+        );
+
+        if (timeDelta >= this.spinDuration) {
+          // stop spinning
+          this.spinning = false;
+          // stop updating
+          this.stopUpdate();
+          // reset the arrow angle
+          this.arrow.angle = 0;
+          // call one last update
+          this.update();
+          // invoke on finish spin if available
+          if (this._onFinishSpin) {
+            // find the current segment
+            const segment = this.segments.find(({ id }) => this.target === id);
+            // if the segment is special, indicate
+            this._onFinishSpin(segment);
+          }
+        }
       }
     } catch (e) {
       console.warn(`MainLoop update failed; with error: ${e}`);
@@ -361,7 +350,6 @@ class Arrow {
   pos = { x: 0, y: 0 };
   image = null;
   angle = 0;
-  tween = null;
   constructor(x, y) {
     this.pos = { x, y };
   }
@@ -435,4 +423,9 @@ function checkFont(font, maxTries = 10, t = 100) {
       rej(e);
     }
   });
+}
+
+function easeInOutQuad(t, b, c, d) {
+  if ((t /= d / 2) < 1) return (c / 2) * t * t + b;
+  return (-c / 2) * (--t * (t - 2) - 1) + b;
 }
