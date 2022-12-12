@@ -10,6 +10,7 @@ import cx from 'classnames';
 import produce from 'immer';
 import confetti from 'canvas-confetti';
 
+import SnowflakesImage from 'src/assets/snowflakes.png';
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { ModalContext } from 'src/context/Modal';
 import { useLocalStorage } from 'src/hooks';
@@ -53,10 +54,7 @@ export const App = () => {
 
   useEffect(() => {
     // initialize the wheel
-    wheel.init(
-      canvasRef.current,
-      storage.choices,
-    );
+    wheel.init(canvasRef.current, storage.choices);
     // mute
     if (storage.muted) {
       Howler.mute(storage.mute);
@@ -233,6 +231,9 @@ export const App = () => {
             </div>
           </form>
           {formError && <div className="text-sm text-red-400">{formError}</div>}
+          <div className="flex justify-end mt-24 relative">
+            <img src={SnowflakesImage} />
+          </div>
         </div>
       </div>
       <ChristmasLights />

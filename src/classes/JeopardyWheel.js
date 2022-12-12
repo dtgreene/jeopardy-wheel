@@ -2,10 +2,11 @@ import MainLoop from 'mainloop.js';
 import { Howl } from 'howler';
 import { nanoid } from 'nanoid';
 
-import SpinSoundSrc from '../assets/GenericButton3.wav';
-import ThundercatsSrc from '../assets/thundercats.png';
-import ArrowSrc from '../assets/arrow.png';
-import ErrorSrc from '../assets/error.png';
+import { colors } from 'src/constants';
+import SpinSoundSrc from 'src/assets/GenericButton3.wav';
+import ThundercatsSrc from 'src/assets/thundercats.png';
+import ArrowSrc from 'src/assets/arrow.png';
+import ErrorSrc from 'src/assets/error.png';
 
 export const canvasWidth = 1024;
 export const canvasHeight = 768;
@@ -18,7 +19,6 @@ const innerRadius = 340;
 
 const textDistance = innerRadius * 0.5;
 
-const colors = ['#073842', '#D44359', '#E8A36A', '#0B5D51', '#9C3161'];
 const palette = prepPalette(colors);
 
 // create worker canvas
