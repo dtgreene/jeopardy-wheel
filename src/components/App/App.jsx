@@ -14,6 +14,8 @@ import SnowflakesImage from 'src/assets/snowflakes.png';
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { ModalContext } from 'src/context/Modal';
 import { useLocalStorage } from 'src/hooks';
+import { getSeasonTheme } from 'src/utils';
+import { SeasonThemes } from 'src/constants';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
@@ -24,6 +26,8 @@ import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
 import AirhornSoundSrc from 'src/assets/airhorn.ogg';
 
 import styles from './App.module.css';
+
+const theme = getSeasonTheme();
 
 const starSettings = {
   spread: 360,
@@ -231,12 +235,14 @@ export const App = () => {
             </div>
           </form>
           {formError && <div className="text-sm text-red-400">{formError}</div>}
-          <div className="flex justify-end mt-24 relative">
-            <img src={SnowflakesImage} />
-          </div>
+          {theme === SeasonThemes.CHRISTMAS && (
+            <div className="flex justify-end mt-24 relative">
+              <img src={SnowflakesImage} />
+            </div>
+          )}
         </div>
       </div>
-      <ChristmasLights />
+      {theme === SeasonThemes.CHRISTMAS && <ChristmasLights />}
     </main>
   );
 };
