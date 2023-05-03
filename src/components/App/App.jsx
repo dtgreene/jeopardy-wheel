@@ -270,7 +270,7 @@ export const App = () => {
               </Button>
             </div>
           </form>
-          <div className="mb-4 flex">
+          <div className="mb-2 flex">
             <div className="text-neutral-500">Recently added options</div>
           </div>
           <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96 flex flex-wrap pt-2 pl-2">
