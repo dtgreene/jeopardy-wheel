@@ -15,7 +15,7 @@ import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { ModalContext } from 'src/context/Modal';
 import { useLocalStorage } from 'src/hooks';
 import { getSeasonTheme } from 'src/utils';
-import { SeasonThemes } from 'src/constants';
+import { SeasonThemes, MAX_HISTORY_ITEMS } from 'src/constants';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
@@ -52,6 +52,7 @@ export const App = () => {
   const [formError, setFormError] = useState('');
   const [storage, setStorage] = useLocalStorage('jeopardy-wheel', {
     choices: [],
+    history: [],
     muted: false,
   });
   const { open } = useContext(ModalContext);
@@ -111,6 +112,52 @@ export const App = () => {
     });
   }, [handleRemoveChoice]);
 
+  const addChoice = (label) => {
+    if (wheel.spinning) return false;
+    if (label.length === 0) return false;
+
+    const isDuplicate = !!storage.choices.find(
+      (choice) => choice.label === label
+    );
+
+    if (isDuplicate) {
+      setFormError('This choice has already been added');
+      return false;
+    } else {
+      // create the choice
+      const nextChoice = { label, id: nanoid() };
+
+      // add the new choice
+      setStorage(
+        produce((draft) => {
+          const value = draft.choices.concat(nextChoice);
+
+          if (!draft.history) draft.history = [];
+
+          const isHistoryDuplicate = Boolean(
+            draft.history.find((value) => value.label === nextChoice.label)
+          );
+
+          // append to the history
+          if (!isHistoryDuplicate) {
+            draft.history.unshift(nextChoice);
+
+            draft.history = draft.history.slice(0, MAX_HISTORY_ITEMS);
+          }
+
+          // mutate choices
+          draft.choices = value;
+          // sync wheel
+          wheel.setChoices(value);
+          // reset form errors
+          setFormError();
+        })
+      );
+    }
+
+    return true;
+  };
+
   const handleMuteClick = () => {
     setStorage(
       produce((draft) => {
@@ -124,39 +171,14 @@ export const App = () => {
   const handleChoiceSubmit = (event) => {
     event.preventDefault();
 
-    if (wheel.spinning) return;
-
     const formData = new FormData(event.target);
     const formObject = Object.fromEntries(formData);
 
-    const choiceLabel = formObject.choice.trim();
-    const duplicate = !!storage.choices.find(
-      ({ label }) => label === choiceLabel
-    );
+    const label = formObject.choice.trim();
 
-    if (choiceLabel.length === 0) {
-      return;
-    } else if (duplicate) {
-      setFormError('This choice has already been added');
-      return;
-    } else {
-      // add the new choice
-      setStorage(
-        produce((draft) => {
-          const value = draft.choices.concat({
-            label: choiceLabel,
-            id: nanoid(),
-          });
-          // mutate choices
-          draft.choices = value;
-          // sync wheel
-          wheel.setChoices(value);
-        })
-      );
+    if (addChoice(label)) {
       // reset the form
       event.target.reset();
-      // reset form errors
-      setFormError();
     }
   };
 
@@ -173,6 +195,20 @@ export const App = () => {
     spinClickSound.play();
 
     wheel.spin();
+  };
+
+  const handleRecentClick = (label) => {
+    addChoice(label);
+  };
+
+  const handleRecentDeleteClick = (event, id) => {
+    event.stopPropagation();
+
+    setStorage(
+      produce((draft) => {
+        draft.history = draft.history.filter((history) => history.id !== id);
+      })
+    );
   };
 
   return (
@@ -220,7 +256,7 @@ export const App = () => {
             ))}
           </div>
           <form onSubmit={handleChoiceSubmit}>
-            <div className="flex justify-between items-center gap-4">
+            <div className="mb-4 flex justify-between items-center gap-4">
               <div className="flex-1">
                 <Input
                   name="choice"
@@ -234,6 +270,26 @@ export const App = () => {
               </Button>
             </div>
           </form>
+          <div className="mb-4 flex">
+            <div className="text-neutral-500">Recently added options</div>
+          </div>
+          <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96 flex flex-wrap pt-2 pl-2">
+            {storage.history.length === 0 && (
+              <div className="mb-2 mr-2 text-neutral-500">None</div>
+            )}
+            {storage.history.map(({ id, label }) => (
+              <div
+                key={id}
+                className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-slate-800 text-gray-400 rounded-full cursor-pointer hover:bg-slate-700 transition-colors"
+                onClick={() => handleRecentClick(label)}
+              >
+                <span>{label}</span>
+                <Button onClick={(event) => handleRecentDeleteClick(event, id)}>
+                  <XMarkIcon width={20} height={20} />
+                </Button>
+              </div>
+            ))}
+          </div>
           {formError && <div className="text-sm text-red-400">{formError}</div>}
           {theme === SeasonThemes.CHRISTMAS && (
             <div className="flex justify-end mt-24 relative">

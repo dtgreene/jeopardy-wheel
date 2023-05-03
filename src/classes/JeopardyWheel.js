@@ -2,7 +2,7 @@ import MainLoop from 'mainloop.js';
 import { Howl } from 'howler';
 import { nanoid } from 'nanoid';
 
-import { colors } from 'src/constants';
+import { WHEEL_COLORS } from 'src/constants';
 import SpinSoundSrc from 'src/assets/GenericButton3.wav';
 import ThundercatsSrc from 'src/assets/thundercats.png';
 import ArrowSrc from 'src/assets/arrow.png';
@@ -19,7 +19,7 @@ const innerRadius = 340;
 
 const textDistance = innerRadius * 0.5;
 
-const palette = prepPalette(colors);
+const palette = prepPalette(WHEEL_COLORS);
 
 // create worker canvas
 const workerCanvas = document.createElement('canvas');
