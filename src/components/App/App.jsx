@@ -267,7 +267,7 @@ export const App = () => {
                 <Input
                   name="choice"
                   type="text"
-                  placeholder="Enter an choice"
+                  placeholder="Choice label"
                   autoComplete="off"
                 />
               </div>
@@ -277,7 +277,7 @@ export const App = () => {
             </div>
           </form>
           <div className="mb-2 flex">
-            <div className="text-neutral-500">Recently added options</div>
+            <div className="text-neutral-500">Recently added choices</div>
           </div>
           <div className="mb-4 border border-neutral-600 rounded p-2">
             {storage.history.length === 0 ? (

@@ -1,0 +1,52 @@
+<svg
+xmlns="http://www.w3.org/2000/svg"
+xmlns:xlink="http://www.w3.org/1999/xlink"
+width="256"
+height="256"
+viewBox="0 0 256 256"
+>
+  <defs>
+    <mask id="circle-mask">
+      <path
+        d="M128,128 m 90,0 a 90,90 0 1,0 -180,0 a 90,90 0 1,0 180,0"
+        fill="#fff"
+      ></path>
+    </mask>
+  </defs>
+  <path
+    d="M128,128 m 100,0 a 100,100 0 1,0 -200,0 a 100,100 0 1,0 200,0"
+    fill="#333"
+  ></path>
+  <rect
+    x="0"
+    y="0"
+    width="128"
+    height="128"
+    fill="#188399"
+    mask="url(#circle-mask)"
+  ></rect>
+  <rect
+    x="128"
+    y="0"
+    width="128"
+    height="128"
+    fill="#D44359"
+    mask="url(#circle-mask)"
+  ></rect>
+  <rect
+    x="128"
+    y="128"
+    width="128"
+    height="128"
+    fill="#E8A36A"
+    mask="url(#circle-mask)"
+  ></rect>
+  <rect
+    x="0"
+    y="128"
+    width="128"
+    height="128"
+    fill="#4C38A8"
+    mask="url(#circle-mask)"
+  ></rect>
+</svg>
