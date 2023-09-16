@@ -288,7 +288,7 @@ export const App = () => {
                   {storage.history.map(({ id, label }) => (
                     <div
                       key={id}
-                      className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full cursor-pointer hover:bg-slate-700 transition-colors"
+                      className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full cursor-pointer hover:bg-sky-900 transition-colors"
                       onClick={() => handleRecentClick(label)}
                     >
                       <span>{label}</span>
