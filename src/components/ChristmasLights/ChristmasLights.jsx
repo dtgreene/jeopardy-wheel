@@ -18,12 +18,10 @@ WHEEL_COLORS.forEach((col, index) => {
 
 export const ChristmasLights = () => {
   const [cols, setCols] = useState([]);
-  const [rows, setRows] = useState([]);
 
   useEffect(() => {
     const handleResize = () => {
       setCols(createArray(Math.floor(window.innerWidth / spacing)));
-      setRows(createArray(Math.floor(window.innerHeight / spacing) - 1));
     };
 
     window.addEventListener('resize', handleResize, false);
@@ -33,14 +31,7 @@ export const ChristmasLights = () => {
     return () => window.removeEventListener('resize', handleResize, false);
   }, []);
 
-  return (
-    <>
-      <LightGroup items={cols} />
-      <LightGroup items={rows} orientation="col" />
-      <LightGroup items={rows} orientation="col" position="end" />
-      <LightGroup items={cols} position="end" />
-    </>
-  );
+  return <LightGroup items={cols} />;
 };
 
 const LightGroup = ({ items, orientation = 'row', position = 'start' }) => (

@@ -1,35 +1,37 @@
 import { useState } from 'react';
 
-export const useLocalStorage = (key, defaultValue) => {
+export const useLocalStorage = (key, defaultValue, onInit) => {
   // State to store our value
   // Pass initial state function to useState so logic is only executed once
   const [storedValue, setStoredValue] = useState(() => {
-    if (typeof window === 'undefined') {
-      return defaultValue;
-    }
+    let initialState = defaultValue;
     try {
       // Get from local storage by key
       const storedItem = window.localStorage.getItem(key);
-      // Parse stored json or if none return initialValue
-      const result = storedItem ? JSON.parse(storedItem) : defaultValue;
 
-      // For the top-level only, compare the stored properties to the initial value
-      // and define them if they are undefined.
-      Object.entries(defaultValue).forEach(([key, value]) => {
-        if (result[key] === undefined) {
-          result[key] = value;
-        }
-      });
+      if (storedItem) {
+        // For the top-level only, compare the stored properties to the initial value
+        // and define them if they are undefined.
+        initialState = Object.entries(defaultValue).reduce(
+          (result, [key, value]) => {
+            if (result[key] === undefined) {
+              result[key] = value;
+            }
 
-      return result;
+            return result;
+          },
+          JSON.parse(storedItem)
+        );
+      }
     } catch (error) {
       // If error also return defaultValue
-      console.log(`Could not get stored value: ${error}`);
-      return defaultValue;
+      console.warn(`Could not parse stored value: ${error}`);
     }
+
+    onInit(initialState);
+    return initialState;
   });
-  // Return a wrapped version of useState's setter function that ...
-  // ... persists the new value to localStorage.
+
   const setValue = (value) => {
     try {
       // Allow value to be a function so we have same API as useState
@@ -43,7 +45,7 @@ export const useLocalStorage = (key, defaultValue) => {
       }
     } catch (error) {
       // A more advanced implementation would handle the error case
-      console.log(error);
+      console.warn(`Could not save stored value: ${error}`);
     }
   };
   return [storedValue, setValue];

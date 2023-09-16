@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 html {
-  @apply bg-neutral-900;
+  @apply bg-neutral-950;
 }
 
 body {

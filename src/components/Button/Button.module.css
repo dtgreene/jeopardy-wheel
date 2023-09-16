@@ -11,5 +11,5 @@ button.secondary {
 }  
 
 button.secondaryOutline {
-  @apply px-3 py-2 border border-neutral-500 hover:bg-neutral-800 hover:text-white text-neutral-500;
+  @apply px-3 py-2 border border-neutral-500 hover:bg-neutral-900 hover:text-white text-neutral-500;
 }

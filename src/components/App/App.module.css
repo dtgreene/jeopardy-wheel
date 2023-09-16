@@ -1,15 +1,20 @@
-div.listItem {
+.listItem {
   @apply flex justify-between items-center px-2 py-1;
 }
 
-div.listItem:nth-child(odd) {
-  @apply bg-neutral-800;
+.listItem:nth-child(odd) {
+  @apply bg-neutral-900;
 }
 
 button.deleteButton {
   @apply opacity-0 transition-opacity;
 }
 
-div.listItem:hover .deleteButton:not(:disabled) {
+.listItem:hover .deleteButton:not(:disabled) {
   @apply opacity-100;
+}
+
+.title {
+  @apply text-center py-8 text-4xl text-neutral-400;
+  font-family: 'Concert One';
 }

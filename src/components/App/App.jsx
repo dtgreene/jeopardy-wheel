@@ -5,29 +5,23 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/solid';
 import { nanoid } from 'nanoid';
-import { Howl, Howler } from 'howler';
 import cx from 'classnames';
 import produce from 'immer';
 import confetti from 'canvas-confetti';
 
-import SnowflakesImage from 'src/assets/snowflakes.png';
+import SnowflakesImage from 'src/assets/images/snowflakes.png';
 import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
 import { ModalContext } from 'src/context/Modal';
 import { useLocalStorage } from 'src/hooks';
-import { getSeasonTheme } from 'src/utils';
-import { SeasonThemes, MAX_HISTORY_ITEMS } from 'src/constants';
+import { playAudio, settings } from 'src/audio';
+import { MAX_HISTORY_ITEMS } from 'src/constants';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
 import { ResultsModal } from '../ResultsModal';
 import { ChristmasLights } from '../ChristmasLights';
 
-import SpinClickSoundSrc from 'src/assets/ClickyButton3b.wav';
-import AirhornSoundSrc from 'src/assets/airhorn.ogg';
-
 import styles from './App.module.css';
-
-const theme = getSeasonTheme();
 
 const starSettings = {
   spread: 360,
@@ -39,31 +33,31 @@ const starSettings = {
   colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
   useWorker: true,
 };
-
+const month = new Date().getMonth();
 const wheel = new JeopardyWheel();
 const canvasStyle = {
   minWidth: '300px',
   maxWidth: canvasWidth,
 };
-let spinClickSound = null;
-let airhornSound = null;
 export const App = () => {
-  const canvasRef = useRef();
+  const canvas = useRef();
   const [formError, setFormError] = useState('');
-  const [storage, setStorage] = useLocalStorage('jeopardy-wheel', {
-    choices: [],
-    history: [],
-    muted: false,
-  });
+  const [storage, setStorage] = useLocalStorage(
+    'jeopardy-wheel',
+    {
+      choices: [],
+      history: [],
+      muted: false,
+    },
+    (initialValue) => {
+      // Synchronize the audio's muted variable with the storage value
+      settings.muted = initialValue.muted;
+    }
+  );
   const { open } = useContext(ModalContext);
 
   useEffect(() => {
-    // initialize the wheel
-    wheel.init(canvasRef.current, storage.choices);
-    // mute
-    if (storage.muted) {
-      Howler.mute(storage.mute);
-    }
+    wheel.init(canvas.current, storage.choices);
   }, []);
 
   // useCallback due to being in the dependency array
@@ -90,24 +84,17 @@ export const App = () => {
     wheel.onFinishSpin((choice) => {
       // play a special sound if the selection is special
       if (choice.special) {
-        // create the sound in response to a user gesture
-        // otherwise get an annoying warning
-        if (!airhornSound) {
-          airhornSound = new Howl({
-            src: [AirhornSoundSrc],
-            volume: 0.6,
-            autoplay: true,
-          });
-        } else {
-          airhornSound.play();
-        }
+        playAudio('airhorn');
 
         // stars
         for (let i = 0; i < 10; i++) {
           setTimeout(shootStars, i * 100);
         }
       } else {
-        open(ResultsModal, { onDelete: handleRemoveChoice, choice });
+        open(ResultsModal, {
+          onDelete: handleRemoveChoice,
+          choice,
+        });
       }
     });
   }, [handleRemoveChoice]);
@@ -116,8 +103,8 @@ export const App = () => {
     if (wheel.spinning) return false;
     if (label.length === 0) return false;
 
-    const isDuplicate = !!storage.choices.find(
-      (choice) => choice.label === label
+    const isDuplicate = Boolean(
+      storage.choices.find((choice) => choice.label === label)
     );
 
     if (isDuplicate) {
@@ -161,11 +148,11 @@ export const App = () => {
   const handleMuteClick = () => {
     setStorage(
       produce((draft) => {
-        draft.muted = !draft.muted;
+        const value = !draft.muted;
+        draft.muted = value;
+        settings.muted = value;
       })
     );
-    // global howler mute
-    Howler.mute(!storage.muted);
   };
 
   const handleChoiceSubmit = (event) => {
@@ -183,17 +170,7 @@ export const App = () => {
   };
 
   const handleSpinClick = () => {
-    // create the sound in response to a user gesture
-    // otherwise get an annoying warning
-    if (!spinClickSound) {
-      spinClickSound = new Howl({
-        src: [SpinClickSoundSrc],
-        volume: 0.6,
-        autoplay: false,
-      });
-    }
-    spinClickSound.play();
-
+    playAudio('spinClick');
     wheel.spin();
   };
 
@@ -211,11 +188,40 @@ export const App = () => {
     );
   };
 
+  const handleAddAllRecentClick = () => {
+    if (wheel.spinning) return;
+
+    const nonDuplicateItems = storage.history.filter(
+      (history) =>
+        !Boolean(storage.choices.find(({ label }) => label === history.label))
+    );
+
+    if (nonDuplicateItems.length > 0) {
+      const newChoices = nonDuplicateItems.map(({ label }) => ({
+        label,
+        id: nanoid(),
+      }));
+      // add the new choice
+      setStorage(
+        produce((draft) => {
+          const value = draft.choices.concat(newChoices);
+          // mutate choices
+          draft.choices = value;
+          // sync wheel
+          wheel.setChoices(value);
+          // reset form errors
+          setFormError();
+        })
+      );
+    }
+  };
+
   return (
     <main>
-      <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start p-8 gap-8 my-8">
+      <div className={styles.title}>Jeopardy Wheel</div>
+      <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start px-8 gap-8 mb-8">
         <div className="flex-2 flex flex-col justify-center items-center">
-          <canvas ref={canvasRef} className="w-full" style={canvasStyle} />
+          <canvas ref={canvas} className="w-full" style={canvasStyle} />
           <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
             <div className="absolute left-0 flex justify-end w-full">
               <Button variant="secondaryOutline" onClick={handleMuteClick}>
@@ -273,32 +279,47 @@ export const App = () => {
           <div className="mb-2 flex">
             <div className="text-neutral-500">Recently added options</div>
           </div>
-          <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96 flex flex-wrap pt-2 pl-2">
-            {storage.history.length === 0 && (
+          <div className="mb-4 border border-neutral-600 rounded p-2">
+            {storage.history.length === 0 ? (
               <div className="mb-2 mr-2 text-neutral-500">None</div>
+            ) : (
+              <>
+                <div className="overflow-y-auto max-h-96 flex flex-wrap">
+                  {storage.history.map(({ id, label }) => (
+                    <div
+                      key={id}
+                      className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full cursor-pointer hover:bg-slate-700 transition-colors"
+                      onClick={() => handleRecentClick(label)}
+                    >
+                      <span>{label}</span>
+                      <Button
+                        onClick={(event) => handleRecentDeleteClick(event, id)}
+                      >
+                        <XMarkIcon width={20} height={20} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-right">
+                  <Button
+                    className="text-sky-500 hover:underline"
+                    onClick={handleAddAllRecentClick}
+                  >
+                    Add all
+                  </Button>
+                </div>
+              </>
             )}
-            {storage.history.map(({ id, label }) => (
-              <div
-                key={id}
-                className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-slate-800 text-gray-400 rounded-full cursor-pointer hover:bg-slate-700 transition-colors"
-                onClick={() => handleRecentClick(label)}
-              >
-                <span>{label}</span>
-                <Button onClick={(event) => handleRecentDeleteClick(event, id)}>
-                  <XMarkIcon width={20} height={20} />
-                </Button>
-              </div>
-            ))}
           </div>
           {formError && <div className="text-sm text-red-400">{formError}</div>}
-          {theme === SeasonThemes.CHRISTMAS && (
+          {month === 12 && (
             <div className="flex justify-end mt-24 relative">
               <img src={SnowflakesImage} />
             </div>
           )}
         </div>
       </div>
-      {theme === SeasonThemes.CHRISTMAS && <ChristmasLights />}
+      {month === 12 && <ChristmasLights />}
     </main>
   );
 };

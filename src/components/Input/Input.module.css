@@ -1,5 +1,9 @@
-input.input:-webkit-autofill:hover, 
+input.input:-webkit-autofill:hover,
 input.input:-webkit-autofill,
 input.input:-webkit-autofill:focus {
-  @apply bg-blue-500;
+  @apply bg-sky-500;
+}
+
+input.input {
+  @apply rounded bg-neutral-900 border border-neutral-500 text-inherit outline-none focus:ring-sky-500 focus:border-sky-500 block w-full px-3 py-2 transition-colors;
 }

@@ -1,12 +1,11 @@
 import MainLoop from 'mainloop.js';
-import { Howl } from 'howler';
 import { nanoid } from 'nanoid';
 
 import { WHEEL_COLORS } from 'src/constants';
-import SpinSoundSrc from 'src/assets/GenericButton3.wav';
-import ThundercatsSrc from 'src/assets/thundercats.png';
-import ArrowSrc from 'src/assets/arrow.png';
-import ErrorSrc from 'src/assets/error.png';
+import ThundercatsSrc from 'src/assets/images/thundercats.png';
+import ArrowSrc from 'src/assets/images/arrow.png';
+import ErrorSrc from 'src/assets/images/error.png';
+import { playAudio } from 'src/audio';
 
 export const canvasWidth = 1024;
 export const canvasHeight = 768;
@@ -49,7 +48,6 @@ export class JeopardyWheel {
   arrow = new Arrow(970, 384);
   target = null;
   thundercatsImage = null;
-  clickSound = null;
   error = false;
   errorImage = null;
   maxSegments = 0;
@@ -101,15 +99,7 @@ export class JeopardyWheel {
     this._onFinishSpin = callback;
   };
   spin = () => {
-    // create the click sound in response to a user gesture
-    // otherwise get an annoying warning
-    if (!this.clickSound) {
-      this.clickSound = new Howl({
-        src: [SpinSoundSrc],
-        volume: 0.4,
-        autoplay: false,
-      });
-    }
+    playAudio('spin');
 
     if (this.spinning || this.segments.length === 0) return;
 
@@ -261,7 +251,7 @@ export class JeopardyWheel {
 
                 if (this.spinning) {
                   this.arrow.bump();
-                  this.clickSound.play();
+                  playAudio('spinClick');
                 }
               }
             }
@@ -334,7 +324,6 @@ export class JeopardyWheel {
           if (this._onFinishSpin) {
             // find the current segment
             const segment = this.segments.find(({ id }) => this.target === id);
-            // if the segment is special, indicate
             this._onFinishSpin(segment);
           }
         }

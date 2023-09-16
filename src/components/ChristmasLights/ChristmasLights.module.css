@@ -1,25 +1,3 @@
-/* @value color-1: #073842; */
-/* @value color-1-fade: #04272e; */
-/* @value color-2: #D44359; */
-/* @value color-2-fade: #9e2436; */
-/* @value color-3: #E8A36A; */
-/* @value color-3-fade: #cc6e1f; */
-/* @value color-4: #0B5D51; */
-/* @value color-4-fade: #074138; */
-/* @value color-5: #9C3161; */
-/* @value color-5-fade: #6d2243; */
-
-/* @value color-1: #c501e2; */
-/* @value color-1-fade: #7b138b; */
-/* @value color-2: #2ef8a0; */
-/* @value color-2-fade: #159c62; */
-/* @value color-3: #ff0534; */
-/* @value color-3-fade: #aa102c; */
-/* @value color-4: #f82d97; */
-/* @value color-4-fade: #961e5c; */
-/* @value color-5: #01c4e7; */
-/* @value color-5-fade: #25899b; */
-
 @value shadow: 8px;
 @value spacing: 64px;
 
@@ -75,12 +53,12 @@
 
 .lightGroup.row.start .wire {
   transform: translateX(50%);
-  @apply bottom-0
+  @apply bottom-0;
 }
 
 .lightGroup.row.end .wire {
   transform: translateX(50%) scaleY(-1);
-  @apply top-0
+  @apply top-0;
 }
 
 .lightGroup.col.start .wire {

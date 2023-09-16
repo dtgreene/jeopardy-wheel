@@ -5,9 +5,8 @@ import confetti from 'canvas-confetti';
 import { ModalStates } from 'src/context/modal';
 import { Button } from 'src/components/Button';
 import { randomInRange } from 'src/utils';
+import { playAudio } from 'src/audio';
 import styles from './ResultsModal.module.css';
-
-import SuccessSoundSrc from 'src/assets/success.wav';
 
 const fireworkDuration = 3000;
 const fireworkDefaults = {
@@ -15,9 +14,8 @@ const fireworkDefaults = {
   spread: 360,
   ticks: 60,
   useWorker: true,
-  colors: ['#fff']
+  colors: ['#fff'],
 };
-let successSound = null;
 let fireworkEnd = 0;
 let fireworkInterval = null;
 
@@ -48,17 +46,7 @@ export const ResultsModal = ({ modalState, close, onDelete, choice }) => {
         );
       }, 300);
 
-      // create the sound in response to a user gesture
-      // otherwise get an annoying warning
-      if (!successSound) {
-        successSound = new Howl({
-          src: [SuccessSoundSrc],
-          volume: 0.6,
-          autoplay: true,
-        });
-      } else {
-        successSound.play();
-      }
+      playAudio('success');
     }, 150);
 
     return () => {
