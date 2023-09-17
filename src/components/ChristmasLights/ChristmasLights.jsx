@@ -7,11 +7,11 @@ import styles from './ChristmasLights.module.css';
 
 const spacing = 64;
 
-// set the light color CSS variables
+// Set the light color CSS variables
 WHEEL_COLORS.forEach((col, index) => {
-  document.body.style.setProperty(`--color-${index + 1}`, col);
+  document.body.style.setProperty(`--christmas-color-${index + 1}`, col);
   document.body.style.setProperty(
-    `--color-${index + 1}-fade`,
+    `--christmas-color-${index + 1}-fade`,
     tinycolor(col).darken(15).toHexString()
   );
 });

@@ -5,4 +5,4 @@ export const WHEEL_COLORS = [
   '#4C38A8',
   '#9C3161',
 ];
-export const MAX_HISTORY_ITEMS = 20;
+export const MAX_RECENT_ITEMS = 30;

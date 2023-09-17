@@ -1,4 +1,12 @@
-import { useEffect, useRef, useState, useContext, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  useCallback,
+  lazy,
+  Suspense,
+} from 'react';
 import {
   SpeakerWaveIcon,
   SpeakerXMarkIcon,
@@ -7,40 +15,39 @@ import {
 import { nanoid } from 'nanoid';
 import cx from 'classnames';
 import produce from 'immer';
-import confetti from 'canvas-confetti';
 
-import SnowflakesImage from 'src/assets/images/snowflakes.png';
-import { JeopardyWheel, canvasWidth } from 'src/classes/JeopardyWheel';
-import { ModalContext } from 'src/context/Modal';
+import PumpkinImage from 'src/assets/images/pumpkin_plain.svg';
+import SnowmanImage from 'src/assets/images/snowman_plain.svg';
+import { JeopardyWheel, canvasWidth } from 'src/wheel/JeopardyWheel';
+import { ToastContext } from 'src/context/Toast';
 import { useLocalStorage } from 'src/hooks';
 import { playAudio, settings } from 'src/audio';
-import { MAX_HISTORY_ITEMS } from 'src/constants';
+import { MAX_RECENT_ITEMS } from 'src/constants';
+import { celebrateSpecial, celebrateResults } from 'src/confetti';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
-import { ResultsModal } from '../ResultsModal';
-import { ChristmasLights } from '../ChristmasLights';
+import { ResultsToast, SpecialToast } from '../Toasts';
+import { ExplodingImage } from '../ExplodingImage';
 
 import styles from './App.module.css';
 
-const starSettings = {
-  spread: 360,
-  ticks: 50,
-  gravity: 0,
-  decay: 0.94,
-  startVelocity: 30,
-  shapes: ['star'],
-  colors: ['FFE400', 'FFBD00', 'E89400', 'FFCA6C', 'FDFFB8'],
-  useWorker: true,
-};
+const ChristmasLights = lazy(() => import('../ChristmasLights'));
+
 const month = new Date().getMonth();
+const isOctober = month === 10;
+const isDecember = month === 12;
+
 const wheel = new JeopardyWheel();
 const canvasStyle = {
   minWidth: '300px',
   maxWidth: canvasWidth,
 };
+
 export const App = () => {
   const canvas = useRef();
+  const [pendingDelete, setPendingDelete] = useState(false);
+  const [lastChosen, setLastChosen] = useState(null);
   const [formError, setFormError] = useState('');
   const [storage, setStorage] = useLocalStorage(
     'jeopardy-wheel',
@@ -54,7 +61,7 @@ export const App = () => {
       settings.muted = initialValue.muted;
     }
   );
-  const { open } = useContext(ModalContext);
+  const { showToast } = useContext(ToastContext);
 
   useEffect(() => {
     wheel.init(canvas.current, storage.choices);
@@ -67,11 +74,11 @@ export const App = () => {
 
       setStorage(
         produce((draft) => {
-          // filter out choices
+          // Filter out choices
           const value = draft.choices.filter((choice) => choice.id !== id);
-          // mutate choices
+          // Mutate choices
           draft.choices = value;
-          // sync wheel
+          // Sync wheel
           wheel.setChoices(value);
         })
       );
@@ -80,21 +87,27 @@ export const App = () => {
   );
 
   useEffect(() => {
-    // subscribe to spin finish
+    // Subscribe to spin finish
     wheel.onFinishSpin((choice) => {
-      // play a special sound if the selection is special
-      if (choice.special) {
-        playAudio('airhorn');
+      setLastChosen(choice.label);
 
-        // stars
-        for (let i = 0; i < 10; i++) {
-          setTimeout(shootStars, i * 100);
-        }
+      // Play a special sound if the selection is special
+      if (choice.special) {
+        showToast(SpecialToast);
+        playAudio('special');
+        celebrateSpecial();
       } else {
-        open(ResultsModal, {
-          onDelete: handleRemoveChoice,
+        showToast(ResultsToast, {
           choice,
+          onTimeout: () => {
+            handleRemoveChoice(choice.id);
+            setPendingDelete(false);
+          },
+          onCancel: () => setPendingDelete(false),
         });
+        playAudio('success');
+        celebrateResults();
+        setPendingDelete(true);
       }
     });
   }, [handleRemoveChoice]);
@@ -111,10 +124,10 @@ export const App = () => {
       setFormError('This choice has already been added');
       return false;
     } else {
-      // create the choice
+      // Create the choice
       const nextChoice = { label, id: nanoid() };
 
-      // add the new choice
+      // Add the new choice
       setStorage(
         produce((draft) => {
           const value = draft.choices.concat(nextChoice);
@@ -125,18 +138,18 @@ export const App = () => {
             draft.history.find((value) => value.label === nextChoice.label)
           );
 
-          // append to the history
+          // Append to the history
           if (!isHistoryDuplicate) {
             draft.history.unshift(nextChoice);
 
-            draft.history = draft.history.slice(0, MAX_HISTORY_ITEMS);
+            draft.history = draft.history.slice(0, MAX_RECENT_ITEMS);
           }
 
-          // mutate choices
+          // Mutate choices
           draft.choices = value;
-          // sync wheel
+          // Sync wheel
           wheel.setChoices(value);
-          // reset form errors
+          // Reset form errors
           setFormError();
         })
       );
@@ -164,18 +177,16 @@ export const App = () => {
     const label = formObject.choice.trim();
 
     if (addChoice(label)) {
-      // reset the form
+      // Reset the form
       event.target.reset();
     }
   };
 
   const handleSpinClick = () => {
-    playAudio('spinClick');
-    wheel.spin();
-  };
-
-  const handleRecentClick = (label) => {
-    addChoice(label);
+    if (!pendingDelete) {
+      playAudio('spinClick');
+      wheel.spin();
+    }
   };
 
   const handleRecentDeleteClick = (event, id) => {
@@ -201,15 +212,15 @@ export const App = () => {
         label,
         id: nanoid(),
       }));
-      // add the new choice
+      // Add the new choice
       setStorage(
         produce((draft) => {
           const value = draft.choices.concat(newChoices);
-          // mutate choices
+          // Mutate choices
           draft.choices = value;
-          // sync wheel
+          // Sync wheel
           wheel.setChoices(value);
-          // reset form errors
+          // Reset form errors
           setFormError();
         })
       );
@@ -218,7 +229,15 @@ export const App = () => {
 
   return (
     <main>
-      <div className={styles.title}>Jeopardy Wheel</div>
+      <div className={styles.title}>
+        <span>Jeopardy Wheel</span>
+        {isOctober && (
+          <ExplodingImage src={PumpkinImage} width={48} height={48} />
+        )}
+        {isDecember && (
+          <ExplodingImage src={SnowmanImage} width={48} height={48} />
+        )}
+      </div>
       <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start px-8 gap-8 mb-8">
         <div className="flex-2 flex flex-col justify-center items-center">
           <canvas ref={canvas} className="w-full" style={canvasStyle} />
@@ -242,7 +261,7 @@ export const App = () => {
           </div>
         </div>
         <div className="flex-1 w-full 2xl:w-auto">
-          <div className="mb-4 border-b border-neutral-600">Choices</div>
+          <div className="text-neutral-500 mb-2">Choices</div>
           <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96">
             {storage.choices.length === 0 && (
               <div className="px-2 py-1 text-neutral-500">
@@ -276,12 +295,11 @@ export const App = () => {
               </Button>
             </div>
           </form>
-          <div className="mb-2 flex">
-            <div className="text-neutral-500">Recently added choices</div>
-          </div>
+          {formError && <div className="text-red-400 mb-4">{formError}</div>}
+          <div className="text-neutral-500 mb-2">Recently added choices</div>
           <div className="mb-4 border border-neutral-600 rounded p-2">
             {storage.history.length === 0 ? (
-              <div className="mb-2 mr-2 text-neutral-500">None</div>
+              <div className="text-neutral-500">None</div>
             ) : (
               <>
                 <div className="overflow-y-auto max-h-96 flex flex-wrap">
@@ -289,7 +307,7 @@ export const App = () => {
                     <div
                       key={id}
                       className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full cursor-pointer hover:bg-sky-900 transition-colors"
-                      onClick={() => handleRecentClick(label)}
+                      onClick={() => addChoice(label)}
                     >
                       <span>{label}</span>
                       <Button
@@ -311,30 +329,21 @@ export const App = () => {
               </>
             )}
           </div>
-          {formError && <div className="text-sm text-red-400">{formError}</div>}
-          {month === 12 && (
-            <div className="flex justify-end mt-24 relative">
-              <img src={SnowflakesImage} />
-            </div>
-          )}
+          <div className="text-neutral-500 mb-2">Last chosen</div>
+          <div className="mb-4 border border-neutral-600 rounded p-2">
+            {lastChosen ? (
+              <div>{lastChosen}</div>
+            ) : (
+              <div className="text-neutral-500">None</div>
+            )}
+          </div>
         </div>
       </div>
-      {month === 12 && <ChristmasLights />}
+      {isDecember && (
+        <Suspense fallback={null}>
+          <ChristmasLights />
+        </Suspense>
+      )}
     </main>
   );
 };
-
-function shootStars() {
-  confetti({
-    ...starSettings,
-    particleCount: 40,
-    scalar: 1.2,
-    shapes: ['star'],
-  });
-  confetti({
-    ...starSettings,
-    particleCount: 10,
-    scalar: 0.75,
-    shapes: ['circle'],
-  });
-}

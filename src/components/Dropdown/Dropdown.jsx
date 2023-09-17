@@ -5,7 +5,7 @@ import cx from 'classnames';
 
 import { Button } from '../Button';
 
-const Dropdown = ({ label, onChange, children }) => (
+const Dropdown = ({ label, children }) => (
   <Menu as="div" className="relative inline-block text-left">
     {({ open }) => (
       <>

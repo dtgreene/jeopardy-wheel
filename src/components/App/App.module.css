@@ -15,6 +15,6 @@ button.deleteButton {
 }
 
 .title {
-  @apply text-center py-8 text-4xl text-neutral-400;
+  @apply text-center py-8 text-4xl text-neutral-400 flex justify-center items-center gap-2;
   font-family: 'Concert One';
 }
