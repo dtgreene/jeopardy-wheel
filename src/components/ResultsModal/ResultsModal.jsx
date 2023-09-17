@@ -32,18 +32,16 @@ export const ResultsModal = ({ modalState, close, onDelete, choice }) => {
         }
         const particleCount = 30 * (timeLeft / fireworkDuration);
         // since particles fall down, start a bit higher than random
-        confetti(
-          Object.assign({}, fireworkDefaults, {
-            particleCount,
-            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-          })
-        );
-        confetti(
-          Object.assign({}, fireworkDefaults, {
-            particleCount,
-            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-          })
-        );
+        confetti({
+          ...fireworkDefaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        });
+        confetti({
+          ...fireworkDefaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        });
       }, 300);
 
       playAudio('success');
