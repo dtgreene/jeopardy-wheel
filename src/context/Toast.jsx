@@ -6,7 +6,7 @@ import { Transition } from '@headlessui/react';
 import { Button } from 'src/components/Button';
 import { useMixedState } from 'src/hooks';
 
-const AUTO_DISMISS_TIME = 7_000;
+const AUTO_DISMISS_TIME = 8_000;
 
 const Toast = ({ toast, onClose }) => {
   const { Component, props, id } = toast;
@@ -45,10 +45,10 @@ const Toast = ({ toast, onClose }) => {
       leave="transition-opacity duration-150"
       leaveFrom="opacity-100"
       leaveTo="opacity-0"
-      className="bg-gray-800 border border-gray-700 rounded p-2 pointer-events-auto w-[500px] relative"
+      className="bg-gray-800 border border-gray-700 rounded px-4 py-3 pointer-events-auto w-[500px] relative"
     >
       <Component id={id} {...props} />
-      <div className="absolute right-2 top-2">
+      <div className="absolute right-4 top-3">
         <Button onClick={() => onClose(id)}>
           <XMarkIcon width={20} height={20} />
         </Button>

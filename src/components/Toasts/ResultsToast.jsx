@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Transition } from '@headlessui/react';
 
+import styles from './ResultsToast.module.css';
+
 const AUTO_REMOVE_TIME = 4_000;
 
 export const ResultsToast = ({ choice, onTimeout, onCancel }) => {
@@ -41,12 +43,12 @@ export const ResultsToast = ({ choice, onTimeout, onCancel }) => {
 
   return (
     <div>
-      <div>{choice.label} was chosen!</div>
+      <div className={styles.choice}>{choice.label} was chosen!</div>
       {removed ? (
         <div className="text-gray-400">Choice was removed.</div>
       ) : (
         <>
-          <div className="mb-4">This choice will be automatically removed.</div>
+          <div className="mb-2">This choice will be automatically removed.</div>
           {cancelled ? (
             <div>Auto-removal cancelled</div>
           ) : (

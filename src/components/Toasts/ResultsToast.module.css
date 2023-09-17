@@ -1,0 +1,4 @@
+.choice {
+  @apply text-4xl mb-2;
+  font-family: 'Concert One';
+}
