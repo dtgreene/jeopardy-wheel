@@ -39,16 +39,13 @@ const isOctober = month === 10;
 const isDecember = month === 12;
 
 const wheel = new JeopardyWheel();
-const canvasStyle = {
-  minWidth: '300px',
-  maxWidth: canvasWidth,
-};
 
 export const App = () => {
-  const canvas = useRef();
+  const canvasContainer = useRef();
   const [pendingDelete, setPendingDelete] = useState(false);
   const [lastChosen, setLastChosen] = useState(null);
   const [formError, setFormError] = useState('');
+  const [isSpinning, setIsSpinning] = useState(false);
   const [storage, setStorage] = useLocalStorage(
     'jeopardy-wheel',
     {
@@ -64,13 +61,13 @@ export const App = () => {
   const { showToast } = useContext(ToastContext);
 
   useEffect(() => {
-    wheel.init(canvas.current, storage.choices);
+    wheel.init(canvasContainer.current, setIsSpinning, storage.choices);
   }, []);
 
   // useCallback due to being in the dependency array
   const handleRemoveChoice = useCallback(
     (id) => {
-      if (wheel.spinning) return;
+      if (isSpinning) return;
 
       setStorage(
         produce((draft) => {
@@ -86,34 +83,8 @@ export const App = () => {
     [setStorage]
   );
 
-  useEffect(() => {
-    // Subscribe to spin finish
-    wheel.onFinishSpin((choice) => {
-      setLastChosen(choice.label);
-
-      // Play a special sound if the selection is special
-      if (choice.special) {
-        showToast(SpecialToast);
-        playAudio('special');
-        celebrateSpecial();
-      } else {
-        showToast(ResultsToast, {
-          choice,
-          onTimeout: () => {
-            handleRemoveChoice(choice.id);
-            setPendingDelete(false);
-          },
-          onCancel: () => setPendingDelete(false),
-        });
-        playAudio('success');
-        celebrateResults();
-        setPendingDelete(true);
-      }
-    });
-  }, [handleRemoveChoice]);
-
   const addChoice = (label) => {
-    if (wheel.spinning) return false;
+    if (isSpinning) return false;
     if (label.length === 0) return false;
 
     const isDuplicate = Boolean(
@@ -184,8 +155,30 @@ export const App = () => {
 
   const handleSpinClick = () => {
     if (!pendingDelete) {
-      playAudio('spinClick');
-      wheel.spin();
+      playAudio('buttonClick');
+
+      wheel.spin((choice) => {
+        setLastChosen(choice.label);
+
+        // Play a special sound if the selection is special
+        if (choice.special) {
+          showToast(SpecialToast);
+          playAudio('specialResults');
+          celebrateSpecial();
+        } else {
+          showToast(ResultsToast, {
+            choice,
+            onTimeout: () => {
+              handleRemoveChoice(choice.id);
+              setPendingDelete(false);
+            },
+            onCancel: () => setPendingDelete(false),
+          });
+          playAudio('results');
+          celebrateResults();
+          setPendingDelete(true);
+        }
+      });
     }
   };
 
@@ -200,7 +193,7 @@ export const App = () => {
   };
 
   const handleAddAllRecentClick = () => {
-    if (wheel.spinning) return;
+    if (isSpinning) return;
 
     const nonDuplicateItems = storage.history.filter(
       (history) =>
@@ -227,6 +220,9 @@ export const App = () => {
     }
   };
 
+  const spinDisabled =
+    isSpinning || pendingDelete || storage.choices.length === 0;
+
   return (
     <main>
       <div className={styles.title}>
@@ -240,7 +236,10 @@ export const App = () => {
       </div>
       <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start px-8 gap-8 mb-8">
         <div className="flex-2 flex flex-col justify-center items-center">
-          <canvas ref={canvas} className="w-full" style={canvasStyle} />
+          <div
+            ref={canvasContainer}
+            className={`w-full min-w-[300px] max-w-[${canvasWidth}px]`}
+          />
           <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
             <div className="absolute left-0 flex justify-end w-full">
               <Button variant="secondaryOutline" onClick={handleMuteClick}>
@@ -257,7 +256,9 @@ export const App = () => {
                 </div>
               </Button>
             </div>
-            <SpinButton onClick={handleSpinClick}>Spin the Wheel</SpinButton>
+            <SpinButton onClick={handleSpinClick} disabled={spinDisabled}>
+              Spin the Wheel
+            </SpinButton>
           </div>
         </div>
         <div className="flex-1 w-full 2xl:w-auto">
@@ -274,6 +275,7 @@ export const App = () => {
                 <Button
                   className={styles.deleteButton}
                   onClick={() => handleRemoveChoice(id)}
+                  disabled={isSpinning}
                 >
                   <XMarkIcon width={20} height={20} />
                 </Button>
@@ -288,10 +290,15 @@ export const App = () => {
                   type="text"
                   placeholder="Choice label"
                   autoComplete="off"
+                  disabled={isSpinning}
                 />
               </div>
-              <Button type="submit" variant="primaryOutline">
-                <span>Add Choice</span>
+              <Button
+                type="submit"
+                variant="primaryOutline"
+                disabled={isSpinning}
+              >
+                Add Choice
               </Button>
             </div>
           </form>
@@ -306,12 +313,15 @@ export const App = () => {
                   {storage.history.map(({ id, label }) => (
                     <div
                       key={id}
-                      className="flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full cursor-pointer hover:bg-sky-900 transition-colors"
+                      className={cx(styles.recentBadge, {
+                        [styles.disabled]: isSpinning,
+                      })}
                       onClick={() => addChoice(label)}
                     >
                       <span>{label}</span>
                       <Button
                         onClick={(event) => handleRecentDeleteClick(event, id)}
+                        disabled={isSpinning}
                       >
                         <XMarkIcon width={20} height={20} />
                       </Button>
@@ -320,8 +330,9 @@ export const App = () => {
                 </div>
                 <div className="text-right">
                   <Button
-                    className="text-sky-500 hover:underline"
+                    className={styles.linkButton}
                     onClick={handleAddAllRecentClick}
+                    disabled={isSpinning}
                   >
                     Add all
                   </Button>

@@ -2,10 +2,16 @@ import MainLoop from 'mainloop.js';
 import { nanoid } from 'nanoid';
 
 import { WHEEL_COLORS } from 'src/constants';
-import ThundercatsSrc from 'src/assets/images/thundercats.png';
-import ArrowSrc from 'src/assets/images/arrow.png';
-import ErrorSrc from 'src/assets/images/error.png';
+import ThundercatsImage from 'src/assets/images/thundercats.png';
 import { playAudio } from 'src/audio';
+import { Arrow } from './Arrow';
+import { Ease } from './Ease';
+import {
+  createCanvas,
+  getStaticImage,
+  loadImage,
+  randomBetween,
+} from './utils';
 
 export const canvasWidth = 1024;
 export const canvasHeight = 768;
@@ -14,407 +20,355 @@ const centerX = canvasWidth * 0.5;
 const centerY = canvasHeight * 0.5;
 
 const outerRadius = 360;
-const innerRadius = 340;
+const innerRadius = 350;
 
 const textDistance = innerRadius * 0.5;
-
 const palette = prepPalette(WHEEL_COLORS);
 
+// Create canvas
+const [canvas, ctx] = createCanvas(canvasWidth, canvasHeight);
 // Create worker canvas
-const workerCanvas = document.createElement('canvas');
-
-// Setup the worker canvas
-workerCanvas.width = canvasWidth;
-workerCanvas.height = canvasHeight;
-
-// Get worker canvas context
-const workerCtx = workerCanvas.getContext('2d');
+const [workerCanvas, workerCtx] = createCanvas(canvasWidth, canvasHeight);
 
 const TWO_PI = Math.PI * 2;
 const HALF_PI = Math.PI * 0.5;
 
 export class JeopardyWheel {
-  canvas = null;
-  ctx = null;
-  ready = false;
-  spinning = false;
-  spinStartTime = 0;
-  spinDuration = 0;
   segments = [];
-  angle = 0;
-  angleDelta = 0;
-  startAngle = 0;
-  background = null;
   arrow = new Arrow(970, 384);
-  target = null;
   thundercatsImage = null;
-  error = false;
-  errorImage = null;
-  maxSegments = 0;
-  _onFinishSpin = null;
+  hasError = false;
+  maxChoicesCount = 0;
+  staticWheel = null;
+  rotationEase = null;
+  prevRotation = 0;
+  prevTarget = null;
+  isSpinning = false;
+  callbacks = {
+    onSpinComplete: null,
+  };
+  stateFunctions = {
+    setIsSpinning: null,
+  };
 
-  init = async (canvas, choices) => {
+  init = async (container, setIsSpinning, choices) => {
+    container.innerHTML = '';
+    container.appendChild(canvas);
+
+    this.stateFunctions.setIsSpinning = setIsSpinning;
+
+    // Set initial choices
+    this.setChoices(choices);
+
+    // Wait for fonts
+    await document.fonts.ready;
+
+    // Load images
     try {
-      // Setup the main canvas
-      this.canvas = canvas;
-      // Set the canvas dimensions
-      this.canvas.width = canvasWidth;
-      this.canvas.height = canvasHeight;
-      // Get the canvas context
-      this.ctx = this.canvas.getContext('2d');
+      this.thundercatsImage = await loadImage(ThundercatsImage);
+      await this.arrow.load();
+    } catch (error) {
+      this._panic(`There was an error loading images: ${error}`);
+    }
 
-      // Create the static background
-      this.background = await getStaticImage((ctx) => {
-        ctx.fillStyle = '#262626';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
-        ctx.fill();
-      });
+    await this._updateStaticWheel();
 
-      // Load the snarf image
-      this.thundercatsImage = await loadImage(ThundercatsSrc);
+    // Setup the mainloop
+    MainLoop.setUpdate(this._update).start();
+  };
+  spin = (callback) => {
+    if (this.isSpinning) {
+      console.warn('Called spin() while the wheel was spinning.');
+      return;
+    }
 
-      // Load the arrow image
-      await this.arrow.init();
+    if (!this.hasError && this.segments.length > 0) {
+      const spinAmount = TWO_PI * 10 + randomBetween(0, TWO_PI);
+      const easeTo = this.prevRotation + spinAmount;
+      const spinDuration = randomBetween(4_000, 8_000);
 
-      // Wait for font to be ready
-      await checkFont('12px Poppins');
-
-      // Set initial choices
-      this.setChoices(choices);
-
-      // Setup the mainloop
-      MainLoop.setUpdate(this.update);
-      // Set ready
-      this.ready = true;
-      // Perform a manual update
-      this.update();
-    } catch (e) {
-      console.error(`Failed to initialize jeopardy wheel; with error: ${e}`);
-      // Panic
-      this.panic();
+      this.callbacks.onSpinComplete = callback;
+      this._setIsSpinning(true);
+      this.rotationEase = new Ease(
+        this.prevRotation,
+        easeTo,
+        spinDuration,
+        this._handleSpinComplete
+      );
     }
   };
-  onFinishSpin = (callback) => {
-    this._onFinishSpin = callback;
-  };
-  spin = () => {
-    playAudio('spin');
-
-    if (this.spinning || this.segments.length === 0) return;
-
-    // Set spin variables
-    this.spinStartTime = Date.now();
-    this.spinDuration = 4000 + Math.random() * 4000;
-    this.angleDelta = TWO_PI * 10 + Math.random() * (TWO_PI * 2);
-    this.startAngle = this.angle;
-
-    // Start spinning
-    this.spinning = true;
-    // Start updating
-    this.startUpdate();
-  };
-  startUpdate = () => {
-    MainLoop.start();
-  };
-  stopUpdate = () => {
-    MainLoop.stop();
-  };
   setChoices = (choices) => {
+    if (this.isSpinning) {
+      console.warn('Called setChoices() while the wheel was spinning.');
+      return;
+    }
+
     // Track the max segments
-    this.maxSegments = Math.max(choices.length, this.maxSegments);
-    // Reset if choices go away
-    if (choices.length === 0) this.maxSegments = 0;
+    if (choices.length > this.maxChoicesCount) {
+      this.maxChoicesCount = choices.length;
+    }
 
     if (choices.length === 0) {
+      // Reset max segments when choices are depleted
+      this.maxChoicesCount = 0;
       this.segments = [];
-    } else if (choices.length === 1 && this.maxSegments > 1) {
-      // Only add the special segment when there's been more than one segment previously
+      this.prevRotation = 0;
+    } else {
+      this.segments = getSegments(choices, this.maxChoicesCount > 1);
+    }
 
-      // How much percent does the large segment take
-      const segmentPercent = 0.95;
+    this._updateStaticWheel();
+  };
+  _setIsSpinning = (value) => {
+    this.isSpinning = value;
+    if (this.stateFunctions.setIsSpinning) {
+      this.stateFunctions.setIsSpinning(value);
+    }
+  };
+  _handleSpinComplete = (finalValue) => {
+    this._setIsSpinning(false);
+    this.prevRotation = finalValue;
+    this.rotationEase = null;
 
-      // Manually create a segment which takes up the majority of the circle
-      let arcWidth = TWO_PI * segmentPercent;
-      let arcStart = 0;
-      let arcEnd = arcStart + arcWidth;
-      let angle = (arcStart + arcEnd) * 0.5;
+    // Find the current target
+    const target = getTargetSegment(this.segments, this.prevRotation);
 
-      const { label, id } = choices[0];
-      this.segments = [
-        {
-          label,
-          id,
-          colors: palette[0],
-          arcStart,
-          arcEnd,
-          angle,
-          arcWidth,
-        },
-      ];
+    if (target) {
+      if (this.callbacks.onSpinComplete) {
+        this.callbacks.onSpinComplete(target);
+        this.callbacks.onSpinComplete = null;
+      }
+    } else {
+      this._panic('Could not determine target after spin completed.');
+    }
+  };
+  _panic = (message) => {
+    console.error(message);
+    this.hasError = true;
+    // Stop updating
+    MainLoop.stop();
+    // Draw the error screen
+    drawBSOD();
+  };
+  _updateStaticWheel = async () => {
+    this.staticWheel = await getStaticWheel(
+      this.segments,
+      this.thundercatsImage
+    );
+  };
+  _update = () => {
+    try {
+      const rotation = this.isSpinning
+        ? this.rotationEase.value
+        : this.prevRotation;
 
-      // Manually create a small segment
-      arcWidth = TWO_PI * (1 - segmentPercent);
-      arcStart = arcEnd;
-      arcEnd = arcEnd + arcWidth;
-      angle = (arcStart + arcEnd) * 0.5;
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(rotation);
+      ctx.drawImage(this.staticWheel, -centerX, -centerY);
+      ctx.restore();
 
-      this.segments.push({
-        label: '',
-        id: nanoid(),
-        colors: ['#000', '#fff'],
+      const currentTarget = getTargetSegment(this.segments, rotation);
+
+      // Play a sound as the target changes
+      if (this.isSpinning) {
+        if (currentTarget !== this.prevTarget) {
+          playAudio('spin');
+          this.prevTarget = currentTarget;
+          this.arrow.bump();
+        }
+      }
+
+      if (currentTarget) {
+        ctx.fillStyle = '#000';
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(
+          centerX,
+          centerY,
+          innerRadius,
+          currentTarget.arcStart + rotation,
+          currentTarget.arcEnd + rotation
+        );
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+      }
+
+      // Update the arrow instance
+      this.arrow.update(ctx);
+
+      // Update the ease instance
+      if (this.rotationEase) {
+        this.rotationEase.update();
+      }
+    } catch (error) {
+      this._panic(`MainLoop update failed: ${error}`);
+    }
+  };
+}
+
+function drawBSOD() {
+  ctx.fillStyle = '#2958e3';
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  ctx.font = '80px Poppins';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(':(', 200, 200);
+  ctx.font = '24px Poppins';
+  ctx.fillText('Your jeopardy wheel ran into a problem and needs', 200, 280);
+  ctx.fillText(
+    "to restart. We're just collecting some error info, and",
+    200,
+    320
+  );
+  ctx.fillText("then we'll restart for you.", 200, 360);
+  ctx.font = '16px Poppins';
+  ctx.fillText('(this is a joke but it really did break, sorry)', 200, 500);
+}
+
+function getTargetSegment(segments, currentRotation) {
+  return segments.find(({ arcStart, arcEnd, arcWidth, label }) => {
+    // Adjust the range of the arc angles to between zero and two PI
+    const rangedArcStart = (arcStart + currentRotation) % TWO_PI;
+    const rangedArcEnd = (arcEnd + currentRotation) % TWO_PI;
+    // The arrow is effectively at the zero radians mark
+    return TWO_PI - rangedArcStart <= arcWidth || rangedArcEnd < arcWidth;
+  });
+}
+
+function prepPalette(palette) {
+  return palette.map((hex) => {
+    const hexColor = hex.slice(1);
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    const textColor = yiq >= 128 ? 'black' : 'white';
+
+    return [hex, textColor];
+  });
+}
+
+function getSegments(choices, useSpecial = false) {
+  if (choices.length === 0) {
+    return [];
+  } else if (choices.length === 1 && useSpecial) {
+    // How much percent does the large segment take
+    const segmentPercent = 0.95;
+
+    // Manually create a segment which takes up the majority of the circle
+    let arcWidth = TWO_PI * segmentPercent;
+    let arcStart = 0;
+    let arcEnd = arcStart + arcWidth;
+    let angle = (arcStart + arcEnd) * 0.5;
+
+    const { label, id } = choices[0];
+    const segments = [
+      {
+        label,
+        id,
+        colors: palette[0],
         arcStart,
         arcEnd,
         angle,
         arcWidth,
-        special: true, // <3
-      });
-    } else {
-      // In this scenario, all segments are equal widths
-      const arcWidth = TWO_PI / choices.length;
-      this.segments = choices.map(({ label, id }, index) => {
-        const arcStart = arcWidth * index;
-        const arcEnd = arcStart + arcWidth;
-        const angle = (arcStart + arcEnd) * 0.5;
+      },
+    ];
 
-        return {
-          label,
-          id,
-          colors: palette[index % palette.length],
-          arcStart,
-          arcEnd,
-          angle,
-          arcWidth,
-        };
-      });
-    }
-    // Randomize angle
-    this.angle = Math.random() * TWO_PI;
-    // Perform a manual update
-    this.update();
-  };
-  panic = async () => {
-    if (!this.errorImage) {
-      // Load the error image
-      this.errorImage = await loadImage(ErrorSrc);
-    }
-    this.error = true;
-    this.update();
-  };
-  update = () => {
-    if (this.error) {
-      if (this.errorImage) {
-        this.ctx.drawImage(this.errorImage, 0, 0);
-      }
-      return;
-    } else if (!this.ready) return;
+    // Manually create a small segment
+    arcWidth = TWO_PI * (1 - segmentPercent);
+    arcStart = arcEnd;
+    arcEnd = arcEnd + arcWidth;
+    angle = (arcStart + arcEnd) * 0.5;
 
-    try {
-      this.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-      this.ctx.drawImage(this.background, 0, 0);
+    segments.push({
+      label: '',
+      id: nanoid(),
+      colors: ['#000', '#fff'],
+      arcStart,
+      arcEnd,
+      angle,
+      arcWidth,
+      special: true, // <3
+    });
 
-      this.ctx.font = '32px Poppins';
-      this.ctx.textAlign = 'center';
-      this.ctx.textBaseline = 'middle';
-      this.ctx.strokeStyle = '#fff';
+    return segments;
+  } else {
+    // In this scenario, all segments are equal widths
+    const arcWidth = TWO_PI / choices.length;
+    return choices.map(({ label, id }, index) => {
+      const arcStart = arcWidth * index;
+      const arcEnd = arcStart + arcWidth;
+      const angle = (arcStart + arcEnd) * 0.5;
 
-      if (this.segments.length === 0) {
-        this.ctx.fillStyle = '#fff';
-        this.ctx.fillText('No choices', centerX, centerY);
-      } else {
-        this.ctx.strokeStyle = '#333';
-        // Draw the segments
-        this.segments.forEach(
-          ({
-            label,
-            id,
-            colors,
-            arcStart,
-            arcEnd,
-            angle,
-            arcWidth,
-            special,
-          }) => {
-            // Adjust the range of the arc angles to between zero and two PI
-            const rangedArcStart = (arcStart + this.angle) % TWO_PI;
-            const rangedArcEnd = (arcEnd + this.angle) % TWO_PI;
-            // The arrow is effectively at the zero radians mark
-            if (
-              TWO_PI - rangedArcStart <= arcWidth ||
-              rangedArcEnd < arcWidth
-            ) {
-              this.ctx.globalAlpha = 0.6;
-
-              // Set last target
-              if (this.target !== id) {
-                this.target = id;
-
-                if (this.spinning) {
-                  this.arrow.bump();
-                  playAudio('spinClick');
-                }
-              }
-            }
-            this.ctx.fillStyle = colors[0];
-            this.ctx.beginPath();
-            this.ctx.moveTo(centerX, centerY);
-            this.ctx.arc(
-              centerX,
-              centerY,
-              innerRadius,
-              arcStart + this.angle,
-              arcEnd + this.angle
-            );
-            this.ctx.closePath();
-            this.ctx.fill();
-            this.ctx.stroke();
-            this.ctx.globalAlpha = 1;
-
-            this.ctx.fillStyle = colors[1];
-
-            const segmentAngle = angle + this.angle;
-            // Draw either the image or the text
-            if (special) {
-              const x = Math.cos(segmentAngle) * 300;
-              const y = Math.sin(segmentAngle) * 300;
-
-              this.ctx.save();
-              this.ctx.translate(centerX + x, centerY + y);
-              this.ctx.rotate(segmentAngle - HALF_PI);
-              this.ctx.drawImage(this.thundercatsImage, -30, -30, 60, 60);
-              this.ctx.restore();
-            } else {
-              const x = Math.cos(segmentAngle) * textDistance;
-              const y = Math.sin(segmentAngle) * textDistance;
-
-              this.ctx.save();
-              this.ctx.translate(centerX + x, centerY + y);
-              this.ctx.rotate(segmentAngle);
-              this.ctx.fillText(label, 0, 0);
-              this.ctx.restore();
-            }
-          }
-        );
-      }
-
-      // Update the arrow
-      this.arrow.update(this.ctx);
-
-      // Only update if currently spinning
-      if (this.spinning) {
-        const timeDelta = Date.now() - this.spinStartTime;
-        // Calculate the current angle for the current time
-        this.angle = easeInOutQuad(
-          timeDelta,
-          this.startAngle,
-          this.angleDelta,
-          this.spinDuration
-        );
-
-        if (timeDelta >= this.spinDuration) {
-          // Stop spinning
-          this.spinning = false;
-          // Stop updating
-          this.stopUpdate();
-          // Reset the arrow angle
-          this.arrow.angle = 0;
-          // Call one last update
-          this.update();
-          // Invoke on finish spin if available
-          if (this._onFinishSpin) {
-            // Find the current segment
-            const segment = this.segments.find(({ id }) => this.target === id);
-            this._onFinishSpin(segment);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn(`MainLoop update failed; with error: ${e}`);
-      MainLoop.stop();
-    }
-  };
-}
-
-class Arrow {
-  pos = { x: 0, y: 0 };
-  image = null;
-  angle = 0;
-  constructor(x, y) {
-    this.pos = { x, y };
+      return {
+        label,
+        id,
+        colors: palette[index % palette.length],
+        arcStart,
+        arcEnd,
+        angle,
+        arcWidth,
+      };
+    });
   }
-  init = async () => {
-    this.image = await loadImage(ArrowSrc);
-  };
-  update = (ctx) => {
-    ctx.save();
-    ctx.translate(this.pos.x, this.pos.y);
-    ctx.rotate(this.angle);
-    ctx.drawImage(this.image, -128, -64, 128, 128);
-    ctx.restore();
-
-    if (this.angle < 0) {
-      this.angle += 0.02;
-    }
-  };
-  bump = () => {
-    this.angle = -0.2;
-  };
 }
 
-function prepPalette(palette) {
-  return palette.map((hex) => [hex, getContrastYIQ(hex.slice(1))]);
-}
+function getStaticWheel(segments, specialImage) {
+  return getStaticImage(workerCanvas, workerCtx, (ctx) => {
+    ctx.fillStyle = '#171717';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
+    ctx.fill();
 
-function getContrastYIQ(hexcolor) {
-  const r = parseInt(hexcolor.substr(0, 2), 16);
-  const g = parseInt(hexcolor.substr(2, 2), 16);
-  const b = parseInt(hexcolor.substr(4, 2), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? 'black' : 'white';
-}
+    ctx.font = '32px Poppins';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#fff';
 
-function getStaticImage(draw) {
-  return new Promise((res, rej) => {
-    // Clear the worker canvas
-    workerCtx.clearRect(0, 0, canvasWidth, canvasHeight);
-    // Call the draw function
-    draw(workerCtx);
+    if (segments.length === 0) {
+      ctx.fillStyle = '#fff';
+      ctx.fillText('No choices', centerX, centerY);
+    } else {
+      ctx.strokeStyle = '#333';
+      // Draw the segments
+      segments.forEach(
+        ({ label, colors, arcStart, arcEnd, angle, special }) => {
+          ctx.fillStyle = colors[0];
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.arc(centerX, centerY, innerRadius, arcStart, arcEnd);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.globalAlpha = 1;
 
-    const img = new Image();
-    img.src = workerCanvas.toDataURL();
-    img.onload = () => res(img);
-    img.onerror = rej;
-  });
-}
+          ctx.fillStyle = colors[1];
 
-function loadImage(src) {
-  return new Promise((res, rej) => {
-    const image = new Image();
-    image.onload = () => res(image);
-    image.onerror = rej;
-    image.src = src;
-  });
-}
+          // Draw either the image or the text
+          if (special) {
+            const x = Math.cos(angle) * 300;
+            const y = Math.sin(angle) * 300;
 
-function checkFont(font, maxTries = 10, t = 100) {
-  return new Promise(async (res, rej) => {
-    try {
-      let tries = 0;
-      while (tries++ < maxTries) {
-        if (document.fonts.check(font)) {
-          res();
-        } else {
-          await new Promise((res) => setTimeout(res, t));
+            ctx.save();
+            ctx.translate(centerX + x, centerY + y);
+            ctx.rotate(angle - HALF_PI);
+            ctx.drawImage(specialImage, -30, -30, 60, 60);
+            ctx.restore();
+          } else {
+            const x = Math.cos(angle) * textDistance;
+            const y = Math.sin(angle) * textDistance;
+
+            ctx.save();
+            ctx.translate(centerX + x, centerY + y);
+            ctx.rotate(angle);
+            ctx.fillText(label, 0, 0);
+            ctx.restore();
+          }
         }
-      }
-    } catch (e) {
-      console.warn(`Retry failed; with error: ${e}`);
-      rej(e);
+      );
     }
   });
-}
-
-function easeInOutQuad(t, b, c, d) {
-  if ((t /= d / 2) < 1) return (c / 2) * t * t + b;
-  return (-c / 2) * (--t * (t - 2) - 1) + b;
 }

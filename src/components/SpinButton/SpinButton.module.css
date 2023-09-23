@@ -1,13 +1,20 @@
 button.base {
-  @apply bg-rose-900 text-white rounded-md transition select-none focus:outline-none whitespace-nowrap text-2xl;
+  @apply bg-rose-900 text-white rounded-md transition select-none focus:outline-none whitespace-nowrap text-2xl cursor-pointer;
   font-family: 'Concert One';
 }
 
-.front {
-  @apply px-3 py-2 transition block rounded-md bg-rose-600 hover:bg-rose-700;
-  transform: translateY(-8px);
+button.base:disabled {
+  @apply cursor-default opacity-50;
 }
 
-button.base:active .front {
-  transform: translateY(0);
+.front {
+  @apply px-3 py-2 transition block rounded-md bg-rose-600 translate-y-[-8px];
+}
+
+button.base:not(:disabled) .front {
+  @apply hover:bg-rose-700;
+}
+
+button.base:active:not(:disabled) .front {
+  @apply translate-y-0;
 }

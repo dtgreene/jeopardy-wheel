@@ -2,12 +2,8 @@ import cx from 'classnames';
 
 import styles from './SpinButton.module.css';
 
-export const SpinButton = ({ className, disabled, children, ...other }) => (
-  <button
-    className={cx({ 'opacity-50': disabled }, styles.base, className)}
-    disabled={disabled}
-    {...other}
-  >
+export const SpinButton = ({ className, children, ...other }) => (
+  <button className={cx(styles.base, className)} {...other}>
     <span className={styles.front}>{children}</span>
   </button>
 );

@@ -18,3 +18,23 @@ button.deleteButton {
   @apply text-center py-8 text-4xl text-neutral-400 flex justify-center items-center gap-2;
   font-family: 'Concert One';
 }
+
+.recentBadge {
+  @apply flex items-center gap-2 px-2 py-1 mb-2 mr-2 bg-sky-800 text-white rounded-full transition-colors;
+}
+
+.recentBadge.disabled {
+  @apply opacity-50;
+}
+
+.recentBadge:not(.disabled) {
+  @apply hover:bg-sky-900 cursor-pointer;
+}
+
+.linkButton {
+  @apply text-sky-500 disabled:opacity-50;
+}
+
+.linkButton:not(:disabled) {
+  @apply hover:underline;
+}

@@ -1,9 +1,9 @@
 import { Howl } from 'howler';
 
 import SpinSrc from 'src/assets/audio/GenericButton3.wav';
-import SpinClickSrc from 'src/assets/audio/ClickyButton3b.wav';
-import SpecialSrc from 'src/assets/audio/Special.mp3';
-import SuccessSrc from 'src/assets/audio/Success.wav';
+import ButtonClickSrc from 'src/assets/audio/ButtonClick.wav';
+import SpecialResultsSrc from 'src/assets/audio/SpecialResults.mp3';
+import ResultsSrc from 'src/assets/audio/Results.wav';
 
 export const settings = {
   muted: false,
@@ -14,16 +14,16 @@ const audioSources = {
     src: [SpinSrc],
     volume: 0.4,
   },
-  spinClick: {
-    src: [SpinClickSrc],
+  buttonClick: {
+    src: [ButtonClickSrc],
     volume: 0.6,
   },
-  special: {
-    src: [SpecialSrc],
+  specialResults: {
+    src: [SpecialResultsSrc],
     volume: 0.6,
   },
-  success: {
-    src: [SuccessSrc],
+  results: {
+    src: [ResultsSrc],
     volume: 0.6,
   },
 };
