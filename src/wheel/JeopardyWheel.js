@@ -1,37 +1,27 @@
 import MainLoop from 'mainloop.js';
 import { nanoid } from 'nanoid';
 
-import { WHEEL_COLORS } from 'src/constants';
+import { WHEEL_COLORS, CANVAS_WIDTH, CANVAS_HEIGHT } from 'src/constants';
 import ThundercatsImage from 'src/assets/images/thundercats.png';
 import { playAudio } from 'src/audio';
 import { Arrow } from './Arrow';
 import { Ease } from './Ease';
-import {
-  createCanvas,
-  getStaticImage,
-  loadImage,
-  randomBetween,
-} from './utils';
+import { getStaticImage, loadImage, randomBetween } from './utils';
 
-export const canvasWidth = 1024;
-export const canvasHeight = 768;
+const CENTER_X = CANVAS_WIDTH * 0.5;
+const CENTER_Y = CANVAS_HEIGHT * 0.5;
+const OUTER_RADIUS = 360;
+const INNER_RADIUS = 350;
+const TEXT_DISTANCE = INNER_RADIUS * 0.5;
+const TWO_PI = Math.PI * 2;
+const HALF_PI = Math.PI * 0.5;
 
-const centerX = canvasWidth * 0.5;
-const centerY = canvasHeight * 0.5;
-
-const outerRadius = 360;
-const innerRadius = 350;
-
-const textDistance = innerRadius * 0.5;
 const palette = prepPalette(WHEEL_COLORS);
 
 // Create canvas
-const [canvas, ctx] = createCanvas(canvasWidth, canvasHeight);
+const [canvas, ctx] = createCanvas();
 // Create worker canvas
-const [workerCanvas, workerCtx] = createCanvas(canvasWidth, canvasHeight);
-
-const TWO_PI = Math.PI * 2;
-const HALF_PI = Math.PI * 0.5;
+const [workerCanvas, workerCtx] = createCanvas();
 
 export class JeopardyWheel {
   segments = [];
@@ -162,11 +152,11 @@ export class JeopardyWheel {
         ? this.rotationEase.value
         : this.prevRotation;
 
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
       ctx.save();
-      ctx.translate(centerX, centerY);
+      ctx.translate(CENTER_X, CENTER_Y);
       ctx.rotate(rotation);
-      ctx.drawImage(this.staticWheel, -centerX, -centerY);
+      ctx.drawImage(this.staticWheel, -CENTER_X, -CENTER_Y);
       ctx.restore();
 
       const currentTarget = getTargetSegment(this.segments, rotation);
@@ -184,11 +174,11 @@ export class JeopardyWheel {
         ctx.fillStyle = '#000';
         ctx.globalAlpha = 0.4;
         ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
+        ctx.moveTo(CENTER_X, CENTER_Y);
         ctx.arc(
-          centerX,
-          centerY,
-          innerRadius,
+          CENTER_X,
+          CENTER_Y,
+          INNER_RADIUS,
           currentTarget.arcStart + rotation,
           currentTarget.arcEnd + rotation
         );
@@ -212,7 +202,7 @@ export class JeopardyWheel {
 
 function drawBSOD() {
   ctx.fillStyle = '#2958e3';
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   ctx.font = '80px Poppins';
   ctx.fillStyle = '#fff';
   ctx.fillText(':(', 200, 200);
@@ -262,7 +252,7 @@ function getSegments(choices, useSpecial = false) {
     let arcWidth = TWO_PI * segmentPercent;
     let arcStart = 0;
     let arcEnd = arcStart + arcWidth;
-    let angle = (arcStart + arcEnd) * 0.5;
+    let textAngle = (arcStart + arcEnd) * 0.5;
 
     const { label, id } = choices[0];
     const segments = [
@@ -272,7 +262,7 @@ function getSegments(choices, useSpecial = false) {
         colors: palette[0],
         arcStart,
         arcEnd,
-        angle,
+        textAngle,
         arcWidth,
       },
     ];
@@ -281,7 +271,7 @@ function getSegments(choices, useSpecial = false) {
     arcWidth = TWO_PI * (1 - segmentPercent);
     arcStart = arcEnd;
     arcEnd = arcEnd + arcWidth;
-    angle = (arcStart + arcEnd) * 0.5;
+    textAngle = (arcStart + arcEnd) * 0.5;
 
     segments.push({
       label: '',
@@ -289,7 +279,7 @@ function getSegments(choices, useSpecial = false) {
       colors: ['#000', '#fff'],
       arcStart,
       arcEnd,
-      angle,
+      textAngle,
       arcWidth,
       special: true, // <3
     });
@@ -301,7 +291,7 @@ function getSegments(choices, useSpecial = false) {
     return choices.map(({ label, id }, index) => {
       const arcStart = arcWidth * index;
       const arcEnd = arcStart + arcWidth;
-      const angle = (arcStart + arcEnd) * 0.5;
+      const textAngle = (arcStart + arcEnd) * 0.5;
 
       return {
         label,
@@ -309,7 +299,7 @@ function getSegments(choices, useSpecial = false) {
         colors: palette[index % palette.length],
         arcStart,
         arcEnd,
-        angle,
+        textAngle,
         arcWidth,
       };
     });
@@ -320,7 +310,7 @@ function getStaticWheel(segments, specialImage) {
   return getStaticImage(workerCanvas, workerCtx, (ctx) => {
     ctx.fillStyle = '#171717';
     ctx.beginPath();
-    ctx.arc(centerX, centerY, outerRadius, 0, TWO_PI);
+    ctx.arc(CENTER_X, CENTER_Y, OUTER_RADIUS, 0, TWO_PI);
     ctx.fill();
 
     ctx.font = '32px Poppins';
@@ -330,16 +320,16 @@ function getStaticWheel(segments, specialImage) {
 
     if (segments.length === 0) {
       ctx.fillStyle = '#fff';
-      ctx.fillText('No choices', centerX, centerY);
+      ctx.fillText('No choices', CENTER_X, CENTER_Y);
     } else {
       ctx.strokeStyle = '#333';
       // Draw the segments
       segments.forEach(
-        ({ label, colors, arcStart, arcEnd, angle, special }) => {
+        ({ label, colors, arcStart, arcEnd, textAngle, special }) => {
           ctx.fillStyle = colors[0];
           ctx.beginPath();
-          ctx.moveTo(centerX, centerY);
-          ctx.arc(centerX, centerY, innerRadius, arcStart, arcEnd);
+          ctx.moveTo(CENTER_X, CENTER_Y);
+          ctx.arc(CENTER_X, CENTER_Y, INNER_RADIUS, arcStart, arcEnd);
           ctx.closePath();
           ctx.fill();
           ctx.stroke();
@@ -349,21 +339,21 @@ function getStaticWheel(segments, specialImage) {
 
           // Draw either the image or the text
           if (special) {
-            const x = Math.cos(angle) * 300;
-            const y = Math.sin(angle) * 300;
+            const x = Math.cos(textAngle) * 300;
+            const y = Math.sin(textAngle) * 300;
 
             ctx.save();
-            ctx.translate(centerX + x, centerY + y);
-            ctx.rotate(angle - HALF_PI);
+            ctx.translate(CENTER_X + x, CENTER_Y + y);
+            ctx.rotate(textAngle - HALF_PI);
             ctx.drawImage(specialImage, -30, -30, 60, 60);
             ctx.restore();
           } else {
-            const x = Math.cos(angle) * textDistance;
-            const y = Math.sin(angle) * textDistance;
+            const x = Math.cos(textAngle) * TEXT_DISTANCE;
+            const y = Math.sin(textAngle) * TEXT_DISTANCE;
 
             ctx.save();
-            ctx.translate(centerX + x, centerY + y);
-            ctx.rotate(angle);
+            ctx.translate(CENTER_X + x, CENTER_Y + y);
+            ctx.rotate(textAngle);
             ctx.fillText(label, 0, 0);
             ctx.restore();
           }
@@ -371,4 +361,14 @@ function getStaticWheel(segments, specialImage) {
       );
     }
   });
+}
+
+function createCanvas() {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = CANVAS_WIDTH;
+  canvas.height = CANVAS_HEIGHT;
+
+  return [canvas, ctx];
 }

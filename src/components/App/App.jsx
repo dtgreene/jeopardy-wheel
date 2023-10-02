@@ -18,11 +18,11 @@ import produce from 'immer';
 
 import PumpkinImage from 'src/assets/images/pumpkin_plain.svg';
 import SnowmanImage from 'src/assets/images/snowman_plain.svg';
-import { JeopardyWheel, canvasWidth } from 'src/wheel/JeopardyWheel';
+import { JeopardyWheel } from 'src/wheel/JeopardyWheel';
 import { ToastContext } from 'src/context/Toast';
 import { useLocalStorage } from 'src/hooks';
 import { playAudio, settings } from 'src/audio';
-import { MAX_RECENT_ITEMS } from 'src/constants';
+import { MAX_RECENT_ITEMS, CANVAS_WIDTH } from 'src/constants';
 import { celebrateSpecial, celebrateResults } from 'src/confetti';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
@@ -34,9 +34,11 @@ import styles from './App.module.css';
 
 const ChristmasLights = lazy(() => import('../ChristmasLights'));
 
+// getMonth() values start at zero
 const month = new Date().getMonth();
-const isOctober = month === 10;
-const isDecember = month === 12;
+
+const isOctober = month === 9;
+const isDecember = month === 11;
 
 const wheel = new JeopardyWheel();
 
@@ -238,7 +240,7 @@ export const App = () => {
         <div className="flex-2 flex flex-col justify-center items-center">
           <div
             ref={canvasContainer}
-            className={`w-full min-w-[300px] max-w-[${canvasWidth}px]`}
+            className={`w-full min-w-[300px] max-w-[${CANVAS_WIDTH}px]`}
           />
           <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
             <div className="absolute left-0 flex justify-end w-full">

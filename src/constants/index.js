@@ -6,3 +6,5 @@ export const WHEEL_COLORS = [
   '#9C3161',
 ];
 export const MAX_RECENT_ITEMS = 30;
+export const CANVAS_WIDTH = 1024;
+export const CANVAS_HEIGHT = 768;
