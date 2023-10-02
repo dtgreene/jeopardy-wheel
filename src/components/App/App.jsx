@@ -34,13 +34,11 @@ import styles from './App.module.css';
 
 const ChristmasLights = lazy(() => import('../ChristmasLights'));
 
-// getMonth() values start at zero
+const wheel = new JeopardyWheel();
 const month = new Date().getMonth();
 
 const isOctober = month === 9;
 const isDecember = month === 11;
-
-const wheel = new JeopardyWheel();
 
 export const App = () => {
   const canvasContainer = useRef();

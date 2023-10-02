@@ -16,7 +16,7 @@ const TEXT_DISTANCE = INNER_RADIUS * 0.5;
 const TWO_PI = Math.PI * 2;
 const HALF_PI = Math.PI * 0.5;
 
-const palette = prepPalette(WHEEL_COLORS);
+const palette = getWheelPalette();
 
 // Create canvas
 const [canvas, ctx] = createCanvas();
@@ -228,8 +228,8 @@ function getTargetSegment(segments, currentRotation) {
   });
 }
 
-function prepPalette(palette) {
-  return palette.map((hex) => {
+function getWheelPalette() {
+  return WHEEL_COLORS.map((hex) => {
     const hexColor = hex.slice(1);
     const r = parseInt(hexColor.substr(0, 2), 16);
     const g = parseInt(hexColor.substr(2, 2), 16);
