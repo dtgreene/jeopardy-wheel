@@ -35,19 +35,17 @@ function getWheelColors(theme) {
   }
 }
 function getTheme() {
-  return THEMES.christmas;
+  const month = new Date().getMonth();
 
-  // const month = new Date().getMonth();
-
-  // switch (month) {
-  //   case 9: {
-  //     return THEMES.halloween;
-  //   }
-  //   case 11: {
-  //     return THEMES.christmas;
-  //   }
-  //   default: {
-  //     return THEMES.default;
-  //   }
-  // }
+  switch (month) {
+    case 9: {
+      return THEMES.halloween;
+    }
+    case 11: {
+      return THEMES.christmas;
+    }
+    default: {
+      return THEMES.default;
+    }
+  }
 }
