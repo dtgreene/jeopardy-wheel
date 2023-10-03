@@ -54,6 +54,9 @@ export class JeopardyWheel {
   patternImages = null;
 
   init = async (container, setIsSpinning, choices) => {
+    container.innerHTML = '';
+    container.appendChild(canvas);
+
     if (CURRENT_THEME === THEMES.halloween) {
       const sharedProps = {
         imageAlpha: 0.3,
@@ -97,9 +100,6 @@ export class JeopardyWheel {
         },
       ];
     }
-
-    container.innerHTML = '';
-    container.appendChild(canvas);
 
     this.stateFunctions.setIsSpinning = setIsSpinning;
 

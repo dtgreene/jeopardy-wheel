@@ -16,7 +16,9 @@ import { nanoid } from 'nanoid';
 import cx from 'classnames';
 import produce from 'immer';
 
+import BatsImage from 'src/assets/images/bats.svg';
 import SpiderWebImage from 'src/assets/images/spider_web.svg';
+import SpiderImage from 'src/assets/images/spider.svg';
 import PumpkinImage from 'src/assets/images/pumpkin_plain.svg';
 import SnowmanImage from 'src/assets/images/snowman_plain.svg';
 import { JeopardyWheel } from 'src/wheel/JeopardyWheel';
@@ -228,9 +230,17 @@ export const App = () => {
   return (
     <main>
       {CURRENT_THEME === THEMES.halloween && (
-        <div className="flex fixed top-0 left-0 opacity-10 -z-10">
-          <img src={SpiderWebImage} className="w-[500px] h-[500px]" />
-        </div>
+        <>
+          <div className="flex fixed top-0 left-0 opacity-10 -z-10">
+            <img src={SpiderWebImage} className="w-[500px] h-[500px]" />
+          </div>
+          <div className="flex fixed top-0 left-[320px] opacity-10 -z-10">
+            <img src={SpiderImage} className="w-[300px] h-[300px]" />
+          </div>
+          <div className="flex fixed bottom-0 right-0 opacity-10 -z-10">
+            <img src={BatsImage} className="w-[300px] h-[300px]" />
+          </div>
+        </>
       )}
       <div className={styles.title}>
         <span>Jeopardy Wheel</span>

@@ -1,0 +1,47 @@
+<svg
+   width="128"
+   height="128"
+   viewBox="0 0 128 128"
+   xmlns="http://www.w3.org/2000/svg">
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:none;stroke-opacity:1"
+      d="M 68.214215,-3.9285674 V 31.561013" />
+  <ellipse
+      style="fill:#ffffff;fill-opacity:1;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+      id="path900"
+      cx="68.613983"
+      cy="36.470531"
+      rx="4.4645309"
+      ry="4.963263" />
+  <ellipse
+      style="fill:#ffffff;fill-opacity:1;stroke-width:0.999999;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
+      id="path900-0"
+      cx="68.680641"
+      cy="41.570755"
+      rx="2.1506765"
+      ry="2.1928468" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="m 71.267876,33.658307 c 2.863022,-2.772788 6.60927,-3.340587 9.153364,-0.176666" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="m 70.870612,35.677151 c 2.863022,-2.772788 6.60927,-3.340587 9.153364,-0.176666" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="m 70.573576,37.875221 c 2.863022,-2.772788 6.60927,-3.340587 9.153364,-0.176666" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="m 70.098317,39.835663 c 2.863022,-2.772788 6.60927,-3.340587 9.153364,-0.176666" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="M 65.93755,33.586949 C 63.074528,30.814161 59.831955,30.49131 57.715548,32.990772" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="M 66.132241,35.719868 C 63.269219,32.94708 60.026646,32.624229 57.910239,35.123691" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="M 66.548093,37.977347 C 63.685071,35.204558 60.442498,34.881707 58.326091,37.38117" />
+  <path
+      style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+      d="M 66.845129,40.294231 C 63.982107,37.521443 60.739534,37.198592 58.623127,39.698054" />
+</svg>
