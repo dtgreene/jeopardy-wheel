@@ -1,5 +1,4 @@
-import ArrowImage from 'src/assets/images/arrow.png';
-import { loadImage } from './utils';
+import { loadImageLazy } from './utils';
 
 export class Arrow {
   pos = { x: 0, y: 0 };
@@ -8,8 +7,8 @@ export class Arrow {
   constructor(x, y) {
     this.pos = { x, y };
   }
-  load = async () => {
-    this.image = await loadImage(ArrowImage);
+  load = async (source) => {
+    this.image = await loadImageLazy(source);
   };
   update = (ctx) => {
     ctx.save();

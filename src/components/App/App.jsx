@@ -16,13 +16,19 @@ import { nanoid } from 'nanoid';
 import cx from 'classnames';
 import produce from 'immer';
 
+import SpiderWebImage from 'src/assets/images/spider_web.svg';
 import PumpkinImage from 'src/assets/images/pumpkin_plain.svg';
 import SnowmanImage from 'src/assets/images/snowman_plain.svg';
 import { JeopardyWheel } from 'src/wheel/JeopardyWheel';
 import { ToastContext } from 'src/context/Toast';
 import { useLocalStorage } from 'src/hooks';
 import { playAudio, settings } from 'src/audio';
-import { MAX_RECENT_ITEMS, CANVAS_WIDTH } from 'src/constants';
+import {
+  MAX_RECENT_ITEMS,
+  CANVAS_WIDTH,
+  CURRENT_THEME,
+  THEMES,
+} from 'src/constants';
 import { celebrateSpecial, celebrateResults } from 'src/confetti';
 import { Button } from '../Button';
 import { SpinButton } from '../SpinButton';
@@ -35,10 +41,6 @@ import styles from './App.module.css';
 const ChristmasLights = lazy(() => import('../ChristmasLights'));
 
 const wheel = new JeopardyWheel();
-const month = new Date().getMonth();
-
-const isOctober = month === 9;
-const isDecember = month === 11;
 
 export const App = () => {
   const canvasContainer = useRef();
@@ -225,12 +227,17 @@ export const App = () => {
 
   return (
     <main>
+      {CURRENT_THEME === THEMES.halloween && (
+        <div className="flex fixed top-0 left-0 opacity-10 -z-10">
+          <img src={SpiderWebImage} className="w-[500px] h-[500px]" />
+        </div>
+      )}
       <div className={styles.title}>
         <span>Jeopardy Wheel</span>
-        {isOctober && (
+        {CURRENT_THEME === THEMES.halloween && (
           <ExplodingImage src={PumpkinImage} width={48} height={48} />
         )}
-        {isDecember && (
+        {CURRENT_THEME === THEMES.christmas && (
           <ExplodingImage src={SnowmanImage} width={48} height={48} />
         )}
       </div>
@@ -350,7 +357,7 @@ export const App = () => {
           </div>
         </div>
       </div>
-      {isDecember && (
+      {CURRENT_THEME === THEMES.christmas && (
         <Suspense fallback={null}>
           <ChristmasLights />
         </Suspense>

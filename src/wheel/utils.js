@@ -16,6 +16,11 @@ export function getStaticImage(canvas, ctx, draw) {
   });
 }
 
+export async function loadImageLazy(importPromise) {
+  const result = await importPromise;
+  return loadImage(result.default);
+}
+
 export function loadImage(source) {
   return new Promise((res, rej) => {
     const image = new Image();

@@ -5,13 +5,6 @@ const WHEEL_COLORS_DEFAULT = [
   '#4C38A8',
   '#9C3161',
 ];
-const WHEEL_COLORS_OCTOBER = [
-  '#37303B',
-  '#862FE0',
-  '#88E032',
-  '#FB702D',
-  '#FFC341',
-];
 const WHEEL_COLORS_DECEMBER = [
   '#FF0000',
   '#FF7878',
@@ -20,12 +13,20 @@ const WHEEL_COLORS_DECEMBER = [
   '#378b29',
 ];
 
-function getWheelColors() {
-  switch (new Date().getMonth()) {
-    case 9: {
-      return WHEEL_COLORS_OCTOBER;
-    }
-    case 11: {
+export const THEMES = {
+  halloween: 'halloween',
+  christmas: 'christmas',
+  default: 'default',
+};
+export const CURRENT_THEME = getTheme();
+export const WHEEL_COLORS = getWheelColors(CURRENT_THEME);
+export const MAX_RECENT_ITEMS = 30;
+export const CANVAS_WIDTH = 1024;
+export const CANVAS_HEIGHT = 768;
+
+function getWheelColors(theme) {
+  switch (theme) {
+    case THEMES.christmas: {
       return WHEEL_COLORS_DECEMBER;
     }
     default: {
@@ -33,7 +34,20 @@ function getWheelColors() {
     }
   }
 }
-export const WHEEL_COLORS = getWheelColors();
-export const MAX_RECENT_ITEMS = 30;
-export const CANVAS_WIDTH = 1024;
-export const CANVAS_HEIGHT = 768;
+function getTheme() {
+  return THEMES.christmas;
+
+  // const month = new Date().getMonth();
+
+  // switch (month) {
+  //   case 9: {
+  //     return THEMES.halloween;
+  //   }
+  //   case 11: {
+  //     return THEMES.christmas;
+  //   }
+  //   default: {
+  //     return THEMES.default;
+  //   }
+  // }
+}
