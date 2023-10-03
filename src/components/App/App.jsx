@@ -245,7 +245,7 @@ export const App = () => {
         <div className="flex-2 flex flex-col justify-center items-center">
           <div
             ref={canvasContainer}
-            className={`w-full min-w-[300px] max-w-[${CANVAS_WIDTH}px]`}
+            className={`w-full max-w-[${CANVAS_WIDTH}px]`}
           />
           <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
             <div className="absolute left-0 flex justify-end w-full">
