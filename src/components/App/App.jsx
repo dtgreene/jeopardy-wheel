@@ -37,6 +37,7 @@ import { SpinButton } from '../SpinButton';
 import { Input } from '../Input';
 import { ResultsToast, SpecialToast } from '../Toasts';
 import { ExplodingImage } from '../ExplodingImage';
+import { LoadingPlaceholder } from '../LoadingPlaceholder';
 
 import styles from './App.module.css';
 
@@ -50,6 +51,7 @@ export const App = () => {
   const [lastChosen, setLastChosen] = useState(null);
   const [formError, setFormError] = useState('');
   const [isSpinning, setIsSpinning] = useState(false);
+  const [ready, setReady] = useState(false);
   const [storage, setStorage] = useLocalStorage(
     'jeopardy-wheel',
     {
@@ -65,7 +67,14 @@ export const App = () => {
   const { showToast } = useContext(ToastContext);
 
   useEffect(() => {
-    wheel.init(canvasContainer.current, setIsSpinning, storage.choices);
+    wheel
+      .init(canvasContainer.current, setIsSpinning, storage.choices)
+      .then(() => {
+        setReady(true);
+      })
+      .catch((error) => {
+        console.error(`There was an error during initialization: ${error}`);
+      });
   }, []);
 
   // useCallback due to being in the dependency array
@@ -229,149 +238,158 @@ export const App = () => {
 
   return (
     <main>
-      {CURRENT_THEME === THEMES.halloween && (
-        <>
-          <div className="flex fixed top-0 left-0 opacity-10 -z-10">
-            <img src={SpiderWebImage} className="w-[500px] h-[500px]" />
-          </div>
-          <div className="flex fixed top-0 left-[320px] opacity-10 -z-10">
-            <img src={SpiderImage} className="w-[300px] h-[300px]" />
-          </div>
-          <div className="flex fixed bottom-0 right-0 opacity-10 -z-10">
-            <img src={BatsImage} className="w-[300px] h-[300px]" />
-          </div>
-        </>
-      )}
-      <div className={styles.title}>
-        <span>Jeopardy Wheel</span>
+      {!ready && <LoadingPlaceholder />}
+      <div
+        className={cx('opacity-0 transition-opacity duration-500', {
+          'opacity-100': ready,
+        })}
+      >
         {CURRENT_THEME === THEMES.halloween && (
-          <ExplodingImage src={PumpkinImage} width={48} height={48} />
-        )}
-        {CURRENT_THEME === THEMES.christmas && (
-          <ExplodingImage src={SnowmanImage} width={48} height={48} />
-        )}
-      </div>
-      <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start px-8 gap-8 mb-8">
-        <div className="flex-2 flex flex-col justify-center items-center">
-          <div
-            ref={canvasContainer}
-            className={`w-full max-w-[${CANVAS_WIDTH}px]`}
-          />
-          <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
-            <div className="absolute left-0 flex justify-end w-full">
-              <Button variant="secondaryOutline" onClick={handleMuteClick}>
-                <div
-                  className={cx('transition-colors', {
-                    'text-red-500': storage.muted,
-                  })}
-                >
-                  {storage.muted ? (
-                    <SpeakerXMarkIcon width={20} height={20} />
-                  ) : (
-                    <SpeakerWaveIcon width={20} height={20} />
-                  )}
-                </div>
-              </Button>
+          <>
+            <div className="flex fixed top-0 left-0 opacity-10 -z-10">
+              <img src={SpiderWebImage} className="w-[500px] h-[500px]" />
             </div>
-            <SpinButton onClick={handleSpinClick} disabled={spinDisabled}>
-              Spin the Wheel
-            </SpinButton>
-          </div>
+            <div className="flex fixed top-0 left-[320px] opacity-10 -z-10">
+              <img src={SpiderImage} className="w-[300px] h-[300px]" />
+            </div>
+            <div className="flex fixed bottom-0 right-0 opacity-10 -z-10">
+              <img src={BatsImage} className="w-[300px] h-[300px]" />
+            </div>
+          </>
+        )}
+        <div className={styles.title}>
+          <span>Jeopardy Wheel</span>
+          {CURRENT_THEME === THEMES.halloween && (
+            <ExplodingImage src={PumpkinImage} width={48} height={48} />
+          )}
+          {CURRENT_THEME === THEMES.christmas && (
+            <ExplodingImage src={SnowmanImage} width={48} height={48} />
+          )}
         </div>
-        <div className="flex-1 w-full 2xl:w-auto">
-          <div className="text-neutral-500 mb-2">Choices</div>
-          <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96">
-            {storage.choices.length === 0 && (
-              <div className="px-2 py-1 text-neutral-500">
-                No choices have been added
-              </div>
-            )}
-            {storage.choices.map(({ id, label }) => (
-              <div key={id} className={styles.listItem}>
-                <span>{label}</span>
-                <Button
-                  className={styles.deleteButton}
-                  onClick={() => handleRemoveChoice(id)}
-                  disabled={isSpinning}
-                >
-                  <XMarkIcon width={20} height={20} />
+        <div className="flex flex-col items-center 2xl:flex-row 2xl:items-start px-8 gap-8 mb-8">
+          <div className="flex-2 flex flex-col justify-center items-center">
+            <div
+              ref={canvasContainer}
+              className={`w-full max-w-[${CANVAS_WIDTH}px]`}
+            />
+            <div className="w-full flex justify-center items-center relative border-t pt-6 border-neutral-600">
+              <div className="absolute left-0 flex justify-end w-full">
+                <Button variant="secondaryOutline" onClick={handleMuteClick}>
+                  <div
+                    className={cx('transition-colors', {
+                      'text-red-500': storage.muted,
+                    })}
+                  >
+                    {storage.muted ? (
+                      <SpeakerXMarkIcon width={20} height={20} />
+                    ) : (
+                      <SpeakerWaveIcon width={20} height={20} />
+                    )}
+                  </div>
                 </Button>
               </div>
-            ))}
-          </div>
-          <form onSubmit={handleChoiceSubmit}>
-            <div className="mb-4 flex justify-between items-center gap-4">
-              <div className="flex-1">
-                <Input
-                  name="choice"
-                  type="text"
-                  placeholder="Choice label"
-                  autoComplete="off"
-                  disabled={isSpinning}
-                />
-              </div>
-              <Button
-                type="submit"
-                variant="primaryOutline"
-                disabled={isSpinning}
-              >
-                Add Choice
-              </Button>
+              <SpinButton onClick={handleSpinClick} disabled={spinDisabled}>
+                Spin the Wheel
+              </SpinButton>
             </div>
-          </form>
-          {formError && <div className="text-red-400 mb-4">{formError}</div>}
-          <div className="text-neutral-500 mb-2">Recently added choices</div>
-          <div className="mb-4 border border-neutral-600 rounded p-2">
-            {storage.history.length === 0 ? (
-              <div className="text-neutral-500">None</div>
-            ) : (
-              <>
-                <div className="overflow-y-auto max-h-96 flex flex-wrap">
-                  {storage.history.map(({ id, label }) => (
-                    <div
-                      key={id}
-                      className={cx(styles.recentBadge, {
-                        [styles.disabled]: isSpinning,
-                      })}
-                      onClick={() => addChoice(label)}
-                    >
-                      <span>{label}</span>
-                      <Button
-                        onClick={(event) => handleRecentDeleteClick(event, id)}
-                        disabled={isSpinning}
-                      >
-                        <XMarkIcon width={20} height={20} />
-                      </Button>
-                    </div>
-                  ))}
+          </div>
+          <div className="flex-1 w-full 2xl:w-auto">
+            <div className="text-neutral-500 mb-2">Choices</div>
+            <div className="mb-4 border border-neutral-600 rounded overflow-y-auto max-h-96">
+              {storage.choices.length === 0 && (
+                <div className="px-2 py-1 text-neutral-500">
+                  No choices have been added
                 </div>
-                <div className="text-right">
+              )}
+              {storage.choices.map(({ id, label }) => (
+                <div key={id} className={styles.listItem}>
+                  <span>{label}</span>
                   <Button
-                    className={styles.linkButton}
-                    onClick={handleAddAllRecentClick}
+                    className={styles.deleteButton}
+                    onClick={() => handleRemoveChoice(id)}
                     disabled={isSpinning}
                   >
-                    Add all
+                    <XMarkIcon width={20} height={20} />
                   </Button>
                 </div>
-              </>
-            )}
-          </div>
-          <div className="text-neutral-500 mb-2">Last chosen</div>
-          <div className="mb-4 border border-neutral-600 rounded p-2">
-            {lastChosen ? (
-              <div>{lastChosen}</div>
-            ) : (
-              <div className="text-neutral-500">None</div>
-            )}
+              ))}
+            </div>
+            <form onSubmit={handleChoiceSubmit}>
+              <div className="mb-4 flex justify-between items-center gap-4">
+                <div className="flex-1">
+                  <Input
+                    name="choice"
+                    type="text"
+                    placeholder="Choice label"
+                    autoComplete="off"
+                    disabled={isSpinning}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="primaryOutline"
+                  disabled={isSpinning}
+                >
+                  Add Choice
+                </Button>
+              </div>
+            </form>
+            {formError && <div className="text-red-400 mb-4">{formError}</div>}
+            <div className="text-neutral-500 mb-2">Recently added choices</div>
+            <div className="mb-4 border border-neutral-600 rounded p-2">
+              {storage.history.length === 0 ? (
+                <div className="text-neutral-500">None</div>
+              ) : (
+                <>
+                  <div className="overflow-y-auto max-h-96 flex flex-wrap">
+                    {storage.history.map(({ id, label }) => (
+                      <div
+                        key={id}
+                        className={cx(styles.recentBadge, {
+                          [styles.disabled]: isSpinning,
+                        })}
+                        onClick={() => addChoice(label)}
+                      >
+                        <span>{label}</span>
+                        <Button
+                          onClick={(event) =>
+                            handleRecentDeleteClick(event, id)
+                          }
+                          disabled={isSpinning}
+                        >
+                          <XMarkIcon width={20} height={20} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-right">
+                    <Button
+                      className={styles.linkButton}
+                      onClick={handleAddAllRecentClick}
+                      disabled={isSpinning}
+                    >
+                      Add all
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="text-neutral-500 mb-2">Last chosen</div>
+            <div className="mb-4 border border-neutral-600 rounded p-2">
+              {lastChosen ? (
+                <div>{lastChosen}</div>
+              ) : (
+                <div className="text-neutral-500">None</div>
+              )}
+            </div>
           </div>
         </div>
+        {CURRENT_THEME === THEMES.christmas && (
+          <Suspense fallback={null}>
+            <ChristmasLights />
+          </Suspense>
+        )}
       </div>
-      {CURRENT_THEME === THEMES.christmas && (
-        <Suspense fallback={null}>
-          <ChristmasLights />
-        </Suspense>
-      )}
     </main>
   );
 };

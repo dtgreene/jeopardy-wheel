@@ -4,12 +4,12 @@ export const THEMES = {
   default: 'default',
 };
 export const CURRENT_THEME = getTheme();
-export const WHEEL_COLORS = [
-  '#188399',
-  '#D44359',
-  '#E8A36A',
-  '#4C38A8',
-  '#9C3161',
+export const WHEEL_PALETTE = [
+  { background: '#188399', color1: '#000', color2: '#fff' },
+  { background: '#D44359', color1: '#000', color2: '#fff' },
+  { background: '#E8A36A', color1: '#000', color2: '#fff' },
+  { background: '#4C38A8', color1: '#000', color2: '#fff' },
+  { background: '#9C3161', color1: '#000', color2: '#fff' },
 ];
 export const MAX_RECENT_ITEMS = 30;
 export const CANVAS_WIDTH = 1024;

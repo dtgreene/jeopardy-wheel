@@ -2,11 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  src: url('./assets/fonts/Poppins-Regular.ttf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Concert One';
+  font-style: normal;
+  src: url('./assets/fonts/ConcertOne-Regular.ttf') format('opentype');
+}
+
 html {
   @apply bg-neutral-950;
 }
 
 body {
   @apply text-white;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Poppins', Helvetica;
 }

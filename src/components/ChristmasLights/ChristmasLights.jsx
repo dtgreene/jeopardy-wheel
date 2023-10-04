@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import cx from 'classnames';
 import tinycolor from 'tinycolor2';
 
-import { WHEEL_COLORS } from 'src/constants';
+import { WHEEL_PALETTE } from 'src/constants';
 import styles from './ChristmasLights.module.css';
 
 const spacing = 64;
 
 // Set the light color CSS variables
-WHEEL_COLORS.forEach((col, index) => {
-  document.body.style.setProperty(`--christmas-color-${index + 1}`, col);
+WHEEL_PALETTE.forEach(({ background }, index) => {
+  document.body.style.setProperty(`--christmas-color-${index + 1}`, background);
   document.body.style.setProperty(
     `--christmas-color-${index + 1}-fade`,
-    tinycolor(col).darken(15).toHexString()
+    tinycolor(background).darken(15).toHexString()
   );
 });
 
